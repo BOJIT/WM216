@@ -1,2 +1,3 @@
-# WM216
-WM216 Coursework Repo
+# WM216 Coursework
+
+Now using Matlab's simulink project format for git integration.
