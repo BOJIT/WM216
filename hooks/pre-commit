@@ -27,7 +27,7 @@ FILESTR=$FILELIST | tr -d '\r'
 echo "Filelist: "$FILELIST
 
 # Call MATLAB update script.
-"${VAR[1]}/matlab" -batch 'addpath("'$PWD'/hooks"); to2018b("hello world");'
+"${VAR[1]}/matlab" -batch 'addpath("'$PWD'/hooks"); to2018b("'$FILELIST'");'
 
 echo "Files successfully converted!"
 
