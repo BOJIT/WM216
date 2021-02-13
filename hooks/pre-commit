@@ -22,14 +22,12 @@ fi
 
 # Get list of changed files.
 FILELIST=$(git diff --diff-filter=d --cached --name-only)
-FILESTR=$FILELIST | tr -d '\r'
+FILESTR=$( echo "$FILELIST" | sed 's/ /\\ /g' )
 
-echo $FILELIST > "out.test"
-
-echo "change"
+echo $FILESTR > "out.test"
 
 # Call MATLAB update script.
-"${VAR[1]}/matlab" -batch 'addpath("'$PWD'/hooks"); to2018b("'$PREFIX $LOCALS'");'
+"${VAR[1]}/matlab" -batch 'addpath("'$PWD'/hooks"); to2018b("'$FILESTR'");'
 
 echo "Files successfully converted!"
 
