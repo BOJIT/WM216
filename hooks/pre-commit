@@ -1,4 +1,9 @@
 #!/bin/sh
 
 # Git hook for re-versioning simulink files on pre-commit.
-echo "Hello Git!"
+
+PREFIX="pre-commit:"
+
+fileList=$(git diff --diff-filter=d --cached --name-only)
+
+echo $fileList
