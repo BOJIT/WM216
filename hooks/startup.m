@@ -9,13 +9,20 @@ fd = fopen('hooks/locals', 'w');
 
 % Write MATLAB version to temp file.
 matlab_info = ver;
-fprintf(fd, [char(matlab_info(1).Release), '\n']);
+fwrite(fd, char(matlab_info(1).Release));
+fprintf(fd, '\n');
 
 % Write MATLAB executable path to temp file.
-fprintf(fd, [fullfile(matlabroot, 'bin'), '\n']);
+fwrite(fd, fullfile(matlabroot, 'bin'));
+fprintf(fd, '\n');
 
 % Copy shell script to .git/hooks directory.
 copyfile 'hooks/pre-commit' '.git/hooks/';
+
+% If on Unix/MacOS the file must be made executable.
+if ~ispc
+    system('chmod +x .git/hooks');
+end
 
 % Close temp file.
 fclose(fd);
