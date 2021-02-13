@@ -22,6 +22,7 @@ fi
 
 # Get list of changed files.
 FILELIST=$(git diff --diff-filter=d --cached --name-only)
+FILESTR=$FILELIST | tr -d '\r'
 
 # Call MATLAB update script.
 "${VAR[1]}/matlab" -batch 'addpath("'$PWD'/hooks"); to2018b("'$FILELIST'");'
