@@ -30,4 +30,7 @@ FILESTR=$(echo $FILELIST | tr -s " " "*")
 
 echo "Files successfully converted!"
 
+# Re-stage files.
+git add -u
+
 exit
