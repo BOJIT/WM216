@@ -21,7 +21,6 @@ copyfile 'hooks/pre-commit' '.git/hooks/';
 
 % If on Unix/MacOS the file must be made executable.
 if ~ispc
-    disp('Setting Permissions for Git Hook...');
     system('chmod +x .git/hooks/pre-commit');
 end
 
