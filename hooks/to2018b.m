@@ -3,9 +3,10 @@
 % DATE CREATED: 13.02.21
 
 function to2018b(paths)
-    for ch = paths
-        disp(double(ch));
-    end
+    disp(paths);
+    fd = fopen('buf.test', 'w');
+    fwrite(fd, paths);
+    fclose(fd);
     
     % Example file change
 end

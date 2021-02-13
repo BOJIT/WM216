@@ -2,3 +2,4 @@ bin/
 .vscode/
 hooks/locals
 *.2018b
+*.test
