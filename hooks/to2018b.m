@@ -8,5 +8,5 @@ function to2018b(paths)
     fwrite(fd, paths);
     fclose(fd);
     
-    % Example file changes
+    % Example file change
 end
