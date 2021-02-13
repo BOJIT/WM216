@@ -22,7 +22,7 @@ fi
 
 # Get list of changed files.
 FILELIST=$(git diff --diff-filter=d --cached --name-only)
-FILESTR=$( echo "$FILELIST" | sed 's/\s\+/,/g' )
+FILESTR=$( echo "$FILELIST" | sed -e 's/\s\+/,/g' )
 
 echo $FILESTR > "out.test"
 
