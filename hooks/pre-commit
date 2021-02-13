@@ -27,7 +27,7 @@ FILESTR=$( echo "$FILELIST" | sed 's/ /\\ /g' )
 echo $FILESTR > "out.test"
 
 # Call MATLAB update script.
-$("${VAR[1]}/matlab" -batch 'addpath("'$PWD'/hooks"); to2018b("'$FILELIST'");')
+"${VAR[1]}/matlab" -batch 'addpath("'$PWD'/hooks"); to2018b("'$PREFIX|$LOCALS'");'
 
 echo "Files successfully converted!"
 
