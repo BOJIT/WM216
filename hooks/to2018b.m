@@ -3,7 +3,9 @@
 % DATE CREATED: 13.02.21
 
 function to2018b(paths)
-    disp(paths);
+    for ch = paths
+        disp(double(ch));
+    end
     
     % Example file change
 end
