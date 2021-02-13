@@ -5,6 +5,7 @@
 function to2018b(paths)
     files = split(paths, '*');
     for file = files
+        disp(file);
         if endsWith(file, '.slx')
             disp(file);
         end
