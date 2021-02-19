@@ -3,7 +3,12 @@
     "workspace": [
         {
             "name": "speakerModel",
-            "K1": 5
+            "K1": 5,
+            "Vb": 0.1,
+            "R": 75,
+            "L": 0.0005,
+            "Vf": 1000,
+            "Vctrl": -1
         },
         {
             "name": "example"
