@@ -3,3 +3,4 @@ bin/
 hooks/locals
 *.r2018b
 *.test
+*.autosave
