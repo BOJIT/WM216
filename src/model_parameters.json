@@ -1,0 +1,12 @@
+{
+    "description": "This file contains initial workspace variables that are loaded into the simulink model workspace by default. Put the relevant variables in object that has the same name as the simulink model.",
+    "workspace": [
+        {
+            "name": "speakerModel",
+            "K1": 5
+        },
+        {
+            "name": "example"
+        }
+    ]
+}
