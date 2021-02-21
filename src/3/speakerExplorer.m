@@ -11,6 +11,7 @@ classdef speakerExplorer < handle
     
     properties
         Figure;
+        Param = struct;
     end
 
     % Public Methods:
@@ -43,7 +44,7 @@ classdef speakerExplorer < handle
         function fig = createFigure(obj)
             % Set default figure environment
             fig = figure('MenuBar', 'none', 'Units', 'Normalized');
-            fig.CloseRequestFcn = @obj.closeUI;
+% % % % % % % % % % % % % % % % % % % % % % % % %             fig.CloseRequestFcn = @obj.closeUI;
             fig.NumberTitle = 'off';
 
             % Position figure and add close request function. 
@@ -56,14 +57,55 @@ classdef speakerExplorer < handle
         
         % Initialise GUI
         function obj = speakerExplorer()
+            
+            % TEMP REMOVE LATER!!!
+            close all; clc;
+            
             % General figure/container structure
             obj.Figure = obj.createFigure();
             obj.Figure.Name = 'Speaker ';
+            
+            %---------------- Create model control panel -----------------%
+            control_panel = obj.createPanel(obj.Figure, 'vertical', ...
+                                           true, [0, 0, 0.35, 0.3]);
+            control_panel.Title = 'Control';
+            
+            % Parameter sliders and labels
+            obj.Param(1).Control = uicontrol(control_panel, 'style', 'slider');
+            obj.Param(1).Label = uicontrol(control_panel, 'style', 'text', ...
+                                           'String', 'Parameter 1');
+            obj.Param(2).Control = uicontrol(control_panel, 'style', 'slider');
+            obj.Param(2).Label = uicontrol(control_panel, 'style', 'text', ...
+                                           'String', 'Parameter 2');
+
+            % Batch simulation button
+            uicontrol(control_panel, 'String', 'Simulate');
       
-            % Create button layout panel
-            ButtonPanel = obj.createPanel(obj.Figure, 'vertical', ...
-                                               true, [0.05, 0.05, 0.5, 0.9]);
-            ButtonPanel.Title = 'Controls';
+            %----------------- Create model config panel -----------------%
+            config_panel = obj.createPanel(obj.Figure, 'vertical', ...
+                                          true, [0, 0.3, 0.35, 0.2]);
+            config_panel.Title = 'Configuration';
+            
+            % Simulation overview options
+            config_options = obj.createPanel(config_panel, 'horizontal', false);
+            uicontrol(config_options, 'style', 'radio', 'String', 'Step');
+            uicontrol(config_options, 'style', 'radio', 'String', 'Sine');
+            uicontrol(config_options, 'style', 'check', 'String', 'Couple');
+            
+            % Frequency control
+            obj.Param(3).Control = uicontrol(config_panel, 'style', 'slider');
+            obj.Param(3).Label = uicontrol(config_panel, 'style', 'text', ...
+                                           'String', 'Frequency');
+            
+            %--------------- Create model parameter panel ----------------%
+            parameter_panel = obj.createPanel(obj.Figure, 'center', ...
+                                             true, [0, 0.5, 0.35, 0.5]);
+            parameter_panel.Title = 'Parameters';
+            
+            %---------------- Create model results panel -----------------%
+            results_panel = obj.createPanel(obj.Figure, 'center', ...
+                                           true, [0.35, 0, 0.65, 1]);
+            results_panel.Title = 'Results';
             
             % Clear listener logs (see positionChildren note).
             clc;
@@ -75,7 +117,7 @@ classdef speakerExplorer < handle
     methods (Access = private)
         
         % Close request function
-        function closeUI(obj, src, ~)
+        function closeUI(~, src, ~)
             selection = questdlg("Close Window?");
             if strcmp(selection, 'Yes')
                 delete(src);
