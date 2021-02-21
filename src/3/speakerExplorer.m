@@ -12,6 +12,7 @@ classdef speakerExplorer < handle
     properties
         Figure;
         Param = struct;
+        Table;
     end
 
     % Public Methods:
@@ -45,6 +46,7 @@ classdef speakerExplorer < handle
             % Set default figure environment
             fig = figure('MenuBar', 'none', 'Units', 'Normalized');
 % % % % % % % % % % % % % % % % % % % % % % % % %             fig.CloseRequestFcn = @obj.closeUI;
+            fig.ResizeFcn = @obj.resizeHandler;
             fig.NumberTitle = 'off';
 
             % Position figure and add close request function. 
@@ -98,12 +100,17 @@ classdef speakerExplorer < handle
                                            'String', 'Frequency');
             
             %--------------- Create model parameter panel ----------------%
-            parameter_panel = obj.createPanel(obj.Figure, 'center', ...
+            parameter_panel = obj.createPanel(obj.Figure, 'vertical', ...
                                              true, [0, 0.5, 0.35, 0.5]);
             parameter_panel.Title = 'Parameters';
             
+            % Add table with responsive resizing:
+            obj.Table = obj.initTable(parameter_panel, 'src/model_parameters.json');
+            table_position = getpixelposition(obj.Table);
+            obj.Table.ColumnWidth = num2cell(repmat(table_position(3)/3, 1, 3));
+            
             %---------------- Create model results panel -----------------%
-            results_panel = obj.createPanel(obj.Figure, 'center', ...
+            results_panel = obj.createPanel(obj.Figure, 'vertical', ...
                                            true, [0.35, 0, 0.65, 1]);
             results_panel.Title = 'Results';
             
@@ -156,6 +163,38 @@ classdef speakerExplorer < handle
                     end
             end
         end
+        
+        % Hook called on resizing of window.
+        function resizeHandler(obj, ~, ~)
+            % Auto resize the table columns (CSS-like responsiveness)
+            table_position = getpixelposition(obj.Table);
+            obj.Table.ColumnWidth = num2cell(repmat(table_position(3)/3, 1, 3));
+        end
+    end
+    
+    % Static Methods:
+    methods (Static)
+        
+        % Read default values to initialise table.
+        function handle = initTable(parent, path)
+            active_ws = [];
+            % Get environment variables from JSON
+            json = fileread(path);
+            param = jsondecode(json);
+            for ws = param.workspace'
+                if strcmp(ws{:}.name, 'speakerModel')
+                    active_ws = ws{:};
+                end
+            end
+            % Generate corresponding data table
+            vars = struct2cell(active_ws);
+            env = [fieldnames(active_ws), vars, num2cell(false(length(vars), 1))];
+            handle = uitable(parent, 'Data', env, 'ColumnEditable', ...
+                             [false, true, true], 'ColumnName', ...
+                             {'Variable', 'Value', 'Parameter?'}, ...
+                             'RowName', []);
+        end
+        
     end
 end
 
