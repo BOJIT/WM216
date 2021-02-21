@@ -12,7 +12,12 @@ classdef speakerExplorer < handle
     properties
         Figure;
         Param = struct;
+        SelectedParam = [];
+        Step;
+        Sine;
         Table;
+        Message;
+        Simulate;
     end
 
     % Public Methods:
@@ -69,7 +74,7 @@ classdef speakerExplorer < handle
             
             %---------------- Create model control panel -----------------%
             control_panel = obj.createPanel(obj.Figure, 'vertical', ...
-                                           true, [0, 0, 0.35, 0.3]);
+                                            true, [0, 0, 0.35, 0.3]);
             control_panel.Title = 'Control';
             
             % Parameter sliders and labels
@@ -81,39 +86,60 @@ classdef speakerExplorer < handle
                                            'String', 'Parameter 2');
 
             % Batch simulation button
-            uicontrol(control_panel, 'String', 'Simulate');
+            obj.Simulate = uicontrol(control_panel, 'String', 'Simulate', ...
+                                     'Callback', @obj.simulate);
       
             %----------------- Create model config panel -----------------%
             config_panel = obj.createPanel(obj.Figure, 'vertical', ...
-                                          true, [0, 0.3, 0.35, 0.2]);
+                                           true, [0, 0.3, 0.35, 0.2]);
             config_panel.Title = 'Configuration';
             
             % Simulation overview options
             config_options = obj.createPanel(config_panel, 'horizontal', false);
-            uicontrol(config_options, 'style', 'radio', 'String', 'Step');
-            uicontrol(config_options, 'style', 'radio', 'String', 'Sine');
-            uicontrol(config_options, 'style', 'check', 'String', 'Couple');
+            obj.Step = uicontrol(config_options, 'style', 'radio', ...
+                                     'String', 'Step', 'Value', 1, ...
+                                     'Callback', @obj.configEditHandler);
+            obj.Sine = uicontrol(config_options, 'style', 'radio', ...
+                                     'String', 'Sine', 'Value', 0, ...
+                                     'Callback', @obj.configEditHandler);
+            uicontrol(config_options, 'style', 'check', 'String', 'Coupled', ...
+                      'Value', 1, 'Callback', @obj.configEditHandler);
             
             % Frequency control
-            obj.Param(3).Control = uicontrol(config_panel, 'style', 'slider');
+            obj.Param(3).Control = uicontrol(config_panel, 'style', 'slider', ...
+                                             'Callback', @obj.configEditHandler);
             obj.Param(3).Label = uicontrol(config_panel, 'style', 'text', ...
                                            'String', 'Frequency');
             
             %--------------- Create model parameter panel ----------------%
             parameter_panel = obj.createPanel(obj.Figure, 'vertical', ...
-                                             true, [0, 0.5, 0.35, 0.5]);
+                                              true, [0, 0.5, 0.35, 0.5]);
             parameter_panel.Title = 'Parameters';
             
             % Add table with responsive resizing:
             obj.Table = obj.initTable(parameter_panel, 'src/model_parameters.json');
             table_position = getpixelposition(obj.Table);
             obj.Table.ColumnWidth = num2cell(repmat(table_position(3)/3, 1, 3));
+            obj.Table.CellEditCallback = @obj.parameterEditHandler;
             
             %---------------- Create model results panel -----------------%
             results_panel = obj.createPanel(obj.Figure, 'vertical', ...
-                                           true, [0.35, 0, 0.65, 1]);
+                                            true, [0.35, 0.05, 0.65, 0.95]);
             results_panel.Title = 'Results';
             
+            %---------------- Create model message panel -----------------%
+            message_panel = obj.createPanel(obj.Figure, 'vertical', ...
+                                            false, [0.35, 0, 0.65, 0.05]);
+            obj.Message = uicontrol(message_panel, 'style', 'text', ...
+                                    'ForegroundColor', [1, 0, 0]);
+            
+            
+            % Initially disable all sliders:
+            for control = obj.Param
+                control.Label.Enable = 'off';
+                control.Control.Enable = 'off';
+            end
+                                
             % Clear listener logs (see positionChildren note).
             clc;
         end
@@ -164,12 +190,73 @@ classdef speakerExplorer < handle
             end
         end
         
-        % Hook called on resizing of window.
+        % Callback for resizing of window.
         function resizeHandler(obj, ~, ~)
             % Auto resize the table columns (CSS-like responsiveness)
             table_position = getpixelposition(obj.Table);
             obj.Table.ColumnWidth = num2cell(repmat(table_position(3)/3, 1, 3));
         end
+        
+        % Callback for editing table parameters.
+        function parameterEditHandler(obj, src, evt)
+            % Set max number of selected parameters. 2 here to match GUI.
+            max_parameters = 2;
+            
+            sel = cell2mat(src.Data(:, 3));
+            num = nnz(sel);
+            
+            % Remove deselected entries.
+            if evt.NewData == false
+                obj.SelectedParam(obj.SelectedParam == evt.Indices(1)) = [];
+            
+            % Create rolling 'memory' of selected options.
+            elseif num > 0 && num <= max_parameters
+                obj.SelectedParam(num) = evt.Indices(1);
+            
+            % Remove oldest entry.
+            elseif num > max_parameters
+                obj.SelectedParam = circshift(obj.SelectedParam, -1);
+                src.Data{obj.SelectedParam(end), 3} = false;
+                obj.SelectedParam(end) = evt.Indices(1);
+            end
+
+            % Simulation is now out of date!
+            obj.outOfDate();
+        end
+        
+        % Callback for editing config parameters
+        function configEditHandler(obj, src, ~)
+            switch src.String
+                case 'Step'
+                    obj.Step.Value = 1;
+                    obj.Sine.Value = 0;
+                    obj.Param(3).Label.Enable = 'off';
+                    obj.Param(3).Control.Enable = 'off';
+                case 'Sine'
+                    obj.Step.Value = 0;
+                    obj.Sine.Value = 1;
+                    obj.Param(3).Label.Enable = 'on';
+                    obj.Param(3).Control.Enable = 'on';
+            end
+            
+            % Simulation is now out of date!
+            obj.outOfDate();
+        end
+        
+        % Show that simulation is out of date
+        function outOfDate(obj, ~, ~)
+            obj.Message.String = 'Results out of date! Re-simulate:';
+            obj.Simulate.Enable = 'on';
+        end
+        
+        % Run simulation and show results!
+        function simulate(obj, ~, ~)
+            
+            
+            obj.Message.String = '';
+            obj.Simulate.Enable = 'off';
+        end
+        
     end
     
     % Static Methods:
@@ -178,6 +265,7 @@ classdef speakerExplorer < handle
         % Read default values to initialise table.
         function handle = initTable(parent, path)
             active_ws = [];
+            
             % Get environment variables from JSON
             json = fileread(path);
             param = jsondecode(json);
@@ -186,6 +274,13 @@ classdef speakerExplorer < handle
                     active_ws = ws{:};
                 end
             end
+            
+            % Remove fields with special functionality
+            blacklist = {'name', 'freq'};
+            for field = blacklist
+                active_ws = rmfield(active_ws, field{:});
+            end
+            
             % Generate corresponding data table
             vars = struct2cell(active_ws);
             env = [fieldnames(active_ws), vars, num2cell(false(length(vars), 1))];

@@ -3,6 +3,7 @@
     "workspace": [
         {
             "name": "speakerModel",
+            "freq": 1000,
             "K1": 5,
             "Vb": 0.1,
             "R": 75,
