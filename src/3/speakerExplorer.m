@@ -18,6 +18,8 @@ classdef speakerExplorer < handle
         Table;
         Message;
         Simulate;
+        TopAxes;
+        BottomAxes;
     end
 
     % Public Methods:
@@ -72,26 +74,9 @@ classdef speakerExplorer < handle
             obj.Figure = obj.createFigure();
             obj.Figure.Name = 'Speaker ';
             
-            %---------------- Create model control panel -----------------%
-            control_panel = obj.createPanel(obj.Figure, 'vertical', ...
-                                            true, [0, 0, 0.35, 0.3]);
-            control_panel.Title = 'Control';
-            
-            % Parameter sliders and labels
-            obj.Param(1).Control = uicontrol(control_panel, 'style', 'slider');
-            obj.Param(1).Label = uicontrol(control_panel, 'style', 'text', ...
-                                           'String', 'Parameter 1');
-            obj.Param(2).Control = uicontrol(control_panel, 'style', 'slider');
-            obj.Param(2).Label = uicontrol(control_panel, 'style', 'text', ...
-                                           'String', 'Parameter 2');
-
-            % Batch simulation button
-            obj.Simulate = uicontrol(control_panel, 'String', 'Simulate', ...
-                                     'Callback', @obj.simulate);
-      
             %----------------- Create model config panel -----------------%
             config_panel = obj.createPanel(obj.Figure, 'vertical', ...
-                                           true, [0, 0.3, 0.35, 0.2]);
+                                           true, [0, 0.3, 0.35, 0.3]);
             config_panel.Title = 'Configuration';
             
             % Simulation overview options
@@ -107,13 +92,19 @@ classdef speakerExplorer < handle
             
             % Frequency control
             obj.Param(3).Control = uicontrol(config_panel, 'style', 'slider', ...
-                                             'Callback', @obj.configEditHandler);
+                                             'Callback', @obj.configEditHandler, ...
+                                             'Value', 0.5);
             obj.Param(3).Label = uicontrol(config_panel, 'style', 'text', ...
                                            'String', 'Frequency');
+                                       
+            % Create feedback boxes
+            slider_display = obj.createPanel(config_panel, 'horizontal', ...
+                                             false);
+            uicontrol(config_panel, 'style', 'text', 'String', 'Parameters');
             
             %--------------- Create model parameter panel ----------------%
             parameter_panel = obj.createPanel(obj.Figure, 'vertical', ...
-                                              true, [0, 0.5, 0.35, 0.5]);
+                                              true, [0, 0.6, 0.35, 0.4]);
             parameter_panel.Title = 'Parameters';
             
             % Add table with responsive resizing:
@@ -123,9 +114,12 @@ classdef speakerExplorer < handle
             obj.Table.CellEditCallback = @obj.parameterEditHandler;
             
             %---------------- Create model results panel -----------------%
-            results_panel = obj.createPanel(obj.Figure, 'vertical', ...
-                                            true, [0.35, 0.05, 0.65, 0.95]);
-            results_panel.Title = 'Results';
+            
+            % Axes cannot be cascaded like normal UIControls
+            obj.TopAxes = axes(obj.Figure, 'OuterPosition', [0.35, 0.525, 0.65, 0.475]);
+            grid(obj.TopAxes, 'on');
+            obj.BottomAxes = axes(obj.Figure, 'OuterPosition', [0.35, 0.05, 0.65, 0.475]);
+            grid(obj.BottomAxes, 'on');
             
             %---------------- Create model message panel -----------------%
             message_panel = obj.createPanel(obj.Figure, 'vertical', ...
@@ -133,11 +127,31 @@ classdef speakerExplorer < handle
             obj.Message = uicontrol(message_panel, 'style', 'text', ...
                                     'ForegroundColor', [1, 0, 0]);
             
+            %---------------- Create model control panel -----------------%
+            control_panel = obj.createPanel(obj.Figure, 'vertical', ...
+                                            true, [0, 0, 0.35, 0.3]);
+            control_panel.Title = 'Control';
             
+            % Parameter sliders and labels
+            obj.Param(1).Control = uicontrol(control_panel, 'style', 'slider', ...
+                                             'Value', 0.5);
+            obj.Param(1).Label = uicontrol(control_panel, 'style', 'text', ...
+                                           'String', 'Parameter 1');
+            obj.Param(2).Control = uicontrol(control_panel, 'style', 'slider', ...
+                                             'Value', 0.5);
+            obj.Param(2).Label = uicontrol(control_panel, 'style', 'text', ...
+                                           'String', 'Parameter 2');
+
+            % Batch simulation button
+            obj.Simulate = uicontrol(control_panel, 'String', 'Simulate', ...
+                                     'Callback', @obj.simulate);
+      
             % Initially disable all sliders:
             for control = obj.Param
                 control.Label.Enable = 'off';
                 control.Control.Enable = 'off';
+                control.Display = uicontrol(slider_display, 'style', ...
+                                                 'edit', 'Enable', 'off');
             end
                                 
             % Clear listener logs (see positionChildren note).
@@ -219,6 +233,9 @@ classdef speakerExplorer < handle
                 src.Data{obj.SelectedParam(end), 3} = false;
                 obj.SelectedParam(end) = evt.Indices(1);
             end
+            
+            % Update slider labels and extents
+            obj.updateSliders();
 
             % Simulation is now out of date!
             obj.outOfDate();
@@ -241,6 +258,21 @@ classdef speakerExplorer < handle
             
             % Simulation is now out of date!
             obj.outOfDate();
+        end
+        
+        % Update the sliders with selected parameters
+        function updateSliders(obj, ~, ~)
+           for i = 1:length(obj.SelectedParam)
+               obj.Param(i).Label.String = obj.Table.Data{obj.SelectedParam(i), 1};
+               obj.Param(i).Label.Enable = 'on';
+               obj.Param(i).Control.Enable = 'on';
+               obj.Param(i).Control.Value = 0.5;
+           end
+           for i = length(obj.SelectedParam) + 1:2
+               obj.Param(i).Label.String = ['Parameter ', num2str(i)];
+               obj.Param(i).Label.Enable = 'off';
+               obj.Param(i).Control.Enable = 'off';
+           end
         end
         
         % Show that simulation is out of date
