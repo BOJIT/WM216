@@ -29,3 +29,6 @@ fclose(fd);
 
 % Confirm initialisation occurred correctly.
 disp('Project Initialised:');
+
+% Clear script variables.
+clear;

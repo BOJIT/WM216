@@ -1,4 +1,13 @@
-classdef speakerExplorer < UIFramework
+classdef speaker_old < handle
+    % Tested on r2018b. READ THE COMMENTS BELOW!!!
+    
+    % The tiling/figure engine is designed so that if the main figure
+    % spawns a new figure, the parent is inactive until the child figure is
+    % closed.
+    
+    % Note that this class uses a positioning engine in an event listener.
+    % This means that UI items are arranged in stacked panels instead of
+    % specifying co-ordinates manually.
     
     properties
         Figure; % Figure handle
@@ -16,19 +25,99 @@ classdef speakerExplorer < UIFramework
 
     % Public Methods (non-application-specific):
     methods
+
+        % Create panel that contains items
+        function panel = createPanel(obj, parent, stack, border, position)
+            panel = uipanel(parent, 'Units', 'Normalized');
+            
+            if nargin >= 3
+                % Add event listener to panel object for child positioning.
+                panel.UserData.Stack = stack;
+                addlistener(panel, 'ChildAdded', @obj.positionChildren);
+            end
+            
+            % Set border properties if included.
+            if nargin >= 4
+                if border == false
+                    panel.BorderType = 'none';
+                end
+            end
+
+            % Add user-defined position.
+            if nargin >= 5
+                panel.Position = position;
+            end
+        end
+        
+        % Create basic figure with preferred defaults
+        function fig = createFigure(obj)
+            % Set default figure environment
+            fig = figure('MenuBar', 'none', 'Units', 'Normalized');
+% % % % % % % % % % % % % % % % % % % % % % % % %             fig.CloseRequestFcn = @obj.closeUI;
+            fig.ResizeFcn = @obj.resizeHandler;
+            fig.NumberTitle = 'off';
+
+            % Position figure and add close request function. 
+            movegui(fig, 'center');
+
+            % Add listener to normalize all figure items
+            fig.UserData.Stack = 'normal';
+            addlistener(fig, 'ChildAdded', @obj.positionChildren);
+        end
+        
+        % Close request function
+        function closeUI(~, src, ~)
+            selection = questdlg("Close Window?");
+            if strcmp(selection, 'Yes')
+                delete(src);
+            end
+        end
+        
+        % Panel children position event (tiling engine)
+        % Note that in r2018b and r2019b this causes a log to be
+        % sent to the console. This due to be fixed in r2021a.
+        function positionChildren(~, src, ~)
+            width = 1/length(src.Children);
+            switch lower(src.UserData.Stack)
+                % Distribute elements vertically in a container.
+                case 'vertical'
+                    i = 0;
+                    for child = src.Children'
+                        child.Units = 'normalized';
+                        child.Position = [0, i*width, 1, width];
+                        i = i + 1;
+                    end
+                % Distribute elements horizontally in a container.
+                case 'horizontal'
+                    i = length(src.Children);
+                    for child = src.Children'
+                        i = i - 1;
+                        child.Units = 'normalized';
+                        child.Position = [i*width, 0, width, 1];
+                    end
+                    
+                % If not tiled, ensure children use normalized units.
+                case 'normal'
+                    for child = src.Children'
+                        if isprop(child, 'Units')
+                            child.Units = 'normalized';
+                        end
+                    end
+            end
+        end
         
         % Initialise GUI
-        function obj = speakerExplorer()
+        function obj = speaker_old()
             
             % TEMP REMOVE LATER!!!
             close all; clc;
             
             % General figure/container structure
-            obj.Figure = obj.figure();
-            obj.Figure.Name = 'Speaker';
+            obj.Figure = obj.createFigure();
+            obj.Figure.Name = 'Speaker ';
             
             %---------------- Create model control panel -----------------%
-            control_panel = obj.panel(obj.Figure, 'vertical', ...
+            control_panel = obj.createPanel(obj.Figure, 'vertical', ...
                                                 true, [0, 0, 0.35, 0.3]);
             control_panel.Title = 'Control';
             
@@ -41,12 +130,12 @@ classdef speakerExplorer < UIFramework
                                                     'Callback', @obj.simulate);
             
             %----------------- Create model config panel -----------------%
-            config_panel = obj.panel(obj.Figure, 'vertical', ...
+            config_panel = obj.createPanel(obj.Figure, 'vertical', ...
                                              true, [0, 0.3, 0.35, 0.2]);
             config_panel.Title = 'Configuration';
             
             % Simulation overview options
-            config_options = obj.panel(config_panel, 'horizontal', false);
+            config_options = obj.createPanel(config_panel, 'horizontal', false);
             obj.Step = uicontrol(config_options, 'style', 'radio', ...
                                      'String', 'Step', 'Value', 1, ...
                                      'Callback', @obj.configEditHandler);
@@ -60,7 +149,7 @@ classdef speakerExplorer < UIFramework
             obj.initParameter(config_panel, 'Frequency', 3);
 
             %--------------- Create model parameter panel ----------------%
-            parameter_panel = obj.panel(obj.Figure, 'vertical', ...
+            parameter_panel = obj.createPanel(obj.Figure, 'vertical', ...
                                                 true, [0, 0.5, 0.35, 0.5]);
             parameter_panel.Title = 'Parameters';
             
@@ -79,16 +168,11 @@ classdef speakerExplorer < UIFramework
             grid(obj.BottomAxes, 'on');
             
             %---------------- Create model message panel -----------------%
-            message_panel = obj.panel(obj.Figure, 'vertical', ...
-                                            false, [0.35, 0, 0.65, 0.2]);
+            message_panel = obj.createPanel(obj.Figure, 'vertical', ...
+                                            false, [0.35, 0, 0.65, 0.05]);
             obj.Message = uicontrol(message_panel, 'style', 'text', ...
                                            'ForegroundColor', [1, 0, 0]);
-                                       
-            x = obj.parameter(message_panel, 'YES', 50, true);
-            x.enable();
-%             x.disable();
                                 
-                        
             % Clear listener logs (see positionChildren note).
 %             clc;
         end
@@ -97,6 +181,13 @@ classdef speakerExplorer < UIFramework
     
     % Private Methods:
     methods (Access = private)
+        
+        % Callback for resizing table to fit window
+        function resizeHandler(obj, ~, ~)
+            % Auto resize the table columns (CSS-like responsiveness)
+            table_position = getpixelposition(obj.Table);
+            obj.Table.ColumnWidth = num2cell(repmat(table_position(3)/3, 1, 3));
+        end
         
         % Callback for editing table parameters
         function parameterEditHandler(obj, src, evt)
@@ -200,7 +291,7 @@ classdef speakerExplorer < UIFramework
             obj.Param(idx).Control = uicontrol(parent, 'style', 'slider', ...
                                                'Value', 0.5, 'Callback', ...
                                                {@obj.controlEditHandler, idx});
-            container = obj.panel(parent, 'horizontal', false);
+            container = obj.createPanel(parent, 'horizontal', false);
             obj.Param(idx).Label = uicontrol(container, 'style', 'text', ...
                                                      'String', label);
             obj.Param(idx).Display = uicontrol(container, 'style', 'edit');
