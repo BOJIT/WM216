@@ -10,19 +10,20 @@ classdef speakerExplorer < handle
     % specifying co-ordinates manually.
     
     properties
-        Figure;
-        Param = struct;
-        SelectedParam = [];
-        Step;
-        Sine;
-        Table;
-        Message;
-        Simulate;
-        TopAxes;
-        BottomAxes;
+        Figure; % Figure handle
+        HiddenEntries = struct; % Stores hidden JSON key-value pairs
+        Param = struct; % Parameter 'block' handle
+        SelectedParam = []; % Rolling selection memory - for checkboxes
+        Step;   % Radiobutton Handle
+        Sine;   % Radiobutton Handle
+        Table;  % Parameter table
+        Message;    % General-purpose message box
+        Simulate;   % Simulation button handle
+        TopAxes;    % Top axes handle
+        BottomAxes; % Bottom axes handle
     end
 
-    % Public Methods:
+    % Public Methods (non-application-specific):
     methods
 
         % Create panel that contains items
@@ -63,105 +64,6 @@ classdef speakerExplorer < handle
             fig.UserData.Stack = 'normal';
             addlistener(fig, 'ChildAdded', @obj.positionChildren);
         end
-        
-        % Initialise GUI
-        function obj = speakerExplorer()
-            
-            % TEMP REMOVE LATER!!!
-            close all; clc;
-            
-            % General figure/container structure
-            obj.Figure = obj.createFigure();
-            obj.Figure.Name = 'Speaker ';
-            
-            %----------------- Create model config panel -----------------%
-            config_panel = obj.createPanel(obj.Figure, 'vertical', ...
-                                           true, [0, 0.3, 0.35, 0.3]);
-            config_panel.Title = 'Configuration';
-            
-            % Simulation overview options
-            config_options = obj.createPanel(config_panel, 'horizontal', false);
-            obj.Step = uicontrol(config_options, 'style', 'radio', ...
-                                     'String', 'Step', 'Value', 1, ...
-                                     'Callback', @obj.configEditHandler);
-            obj.Sine = uicontrol(config_options, 'style', 'radio', ...
-                                     'String', 'Sine', 'Value', 0, ...
-                                     'Callback', @obj.configEditHandler);
-            uicontrol(config_options, 'style', 'check', 'String', 'Coupled', ...
-                      'Value', 1, 'Callback', @obj.configEditHandler);
-            
-            % Frequency control
-            obj.Param(3).Control = uicontrol(config_panel, 'style', 'slider', ...
-                                             'Callback', @obj.configEditHandler, ...
-                                             'Value', 0.5);
-            obj.Param(3).Label = uicontrol(config_panel, 'style', 'text', ...
-                                           'String', 'Frequency');
-                                       
-            % Create feedback boxes
-            slider_display = obj.createPanel(config_panel, 'horizontal', ...
-                                             false);
-            uicontrol(config_panel, 'style', 'text', 'String', 'Parameters');
-            
-            %--------------- Create model parameter panel ----------------%
-            parameter_panel = obj.createPanel(obj.Figure, 'vertical', ...
-                                              true, [0, 0.6, 0.35, 0.4]);
-            parameter_panel.Title = 'Parameters';
-            
-            % Add table with responsive resizing:
-            obj.Table = obj.initTable(parameter_panel, 'src/model_parameters.json');
-            table_position = getpixelposition(obj.Table);
-            obj.Table.ColumnWidth = num2cell(repmat(table_position(3)/3, 1, 3));
-            obj.Table.CellEditCallback = @obj.parameterEditHandler;
-            
-            %---------------- Create model results panel -----------------%
-            
-            % Axes cannot be cascaded like normal UIControls
-            obj.TopAxes = axes(obj.Figure, 'OuterPosition', [0.35, 0.525, 0.65, 0.475]);
-            grid(obj.TopAxes, 'on');
-            obj.BottomAxes = axes(obj.Figure, 'OuterPosition', [0.35, 0.05, 0.65, 0.475]);
-            grid(obj.BottomAxes, 'on');
-            
-            %---------------- Create model message panel -----------------%
-            message_panel = obj.createPanel(obj.Figure, 'vertical', ...
-                                            false, [0.35, 0, 0.65, 0.05]);
-            obj.Message = uicontrol(message_panel, 'style', 'text', ...
-                                    'ForegroundColor', [1, 0, 0]);
-            
-            %---------------- Create model control panel -----------------%
-            control_panel = obj.createPanel(obj.Figure, 'vertical', ...
-                                            true, [0, 0, 0.35, 0.3]);
-            control_panel.Title = 'Control';
-            
-            % Parameter sliders and labels
-            obj.Param(1).Control = uicontrol(control_panel, 'style', 'slider', ...
-                                             'Value', 0.5);
-            obj.Param(1).Label = uicontrol(control_panel, 'style', 'text', ...
-                                           'String', 'Parameter 1');
-            obj.Param(2).Control = uicontrol(control_panel, 'style', 'slider', ...
-                                             'Value', 0.5);
-            obj.Param(2).Label = uicontrol(control_panel, 'style', 'text', ...
-                                           'String', 'Parameter 2');
-
-            % Batch simulation button
-            obj.Simulate = uicontrol(control_panel, 'String', 'Simulate', ...
-                                     'Callback', @obj.simulate);
-      
-            % Initially disable all sliders:
-            for control = obj.Param
-                control.Label.Enable = 'off';
-                control.Control.Enable = 'off';
-                control.Display = uicontrol(slider_display, 'style', ...
-                                                 'edit', 'Enable', 'off');
-            end
-                                
-            % Clear listener logs (see positionChildren note).
-            clc;
-        end
-        
-    end
-    
-    % Private Methods (Callbacks):
-    methods (Access = private)
         
         % Close request function
         function closeUI(~, src, ~)
@@ -204,14 +106,90 @@ classdef speakerExplorer < handle
             end
         end
         
-        % Callback for resizing of window.
+        % Initialise GUI
+        function obj = speakerExplorer()
+            
+            % TEMP REMOVE LATER!!!
+            close all; clc;
+            
+            % General figure/container structure
+            obj.Figure = obj.createFigure();
+            obj.Figure.Name = 'Speaker ';
+            
+            %---------------- Create model control panel -----------------%
+            control_panel = obj.createPanel(obj.Figure, 'vertical', ...
+                                                true, [0, 0, 0.35, 0.3]);
+            control_panel.Title = 'Control';
+            
+            % Parameter sliders and labels
+            obj.initParameter(control_panel, 'Parameter 1', 1);
+            obj.initParameter(control_panel, 'Parameter 2', 2);
+
+            % Batch simulation button
+            obj.Simulate = uicontrol(control_panel, 'String', 'Simulate', ...
+                                                    'Callback', @obj.simulate);
+            
+            %----------------- Create model config panel -----------------%
+            config_panel = obj.createPanel(obj.Figure, 'vertical', ...
+                                             true, [0, 0.3, 0.35, 0.2]);
+            config_panel.Title = 'Configuration';
+            
+            % Simulation overview options
+            config_options = obj.createPanel(config_panel, 'horizontal', false);
+            obj.Step = uicontrol(config_options, 'style', 'radio', ...
+                                     'String', 'Step', 'Value', 1, ...
+                                     'Callback', @obj.configEditHandler);
+            obj.Sine = uicontrol(config_options, 'style', 'radio', ...
+                                     'String', 'Sine', 'Value', 0, ...
+                                     'Callback', @obj.configEditHandler);
+            uicontrol(config_options, 'style', 'check', 'String', 'Coupled', ...
+                                  'Value', 1, 'Callback', @obj.configEditHandler);
+            
+            % Frequency control
+            obj.initParameter(config_panel, 'Frequency', 3);
+
+            %--------------- Create model parameter panel ----------------%
+            parameter_panel = obj.createPanel(obj.Figure, 'vertical', ...
+                                                true, [0, 0.5, 0.35, 0.5]);
+            parameter_panel.Title = 'Parameters';
+            
+            % Add table with responsive resizing:
+            obj.Table = obj.initTable(parameter_panel, 'src/model_parameters.json');
+            table_position = getpixelposition(obj.Table);
+            obj.Table.ColumnWidth = num2cell(repmat(table_position(3)/3, 1, 3));
+            obj.Table.CellEditCallback = @obj.parameterEditHandler;
+            
+            %---------------- Create model results panel -----------------%
+            
+            % Axes cannot be cascaded like normal UIControls
+            obj.TopAxes = axes(obj.Figure, 'OuterPosition', [0.35, 0.525, 0.65, 0.475]);
+            grid(obj.TopAxes, 'on');
+            obj.BottomAxes = axes(obj.Figure, 'OuterPosition', [0.35, 0.05, 0.65, 0.475]);
+            grid(obj.BottomAxes, 'on');
+            
+            %---------------- Create model message panel -----------------%
+            message_panel = obj.createPanel(obj.Figure, 'vertical', ...
+                                            false, [0.35, 0, 0.65, 0.05]);
+            obj.Message = uicontrol(message_panel, 'style', 'text', ...
+                                           'ForegroundColor', [1, 0, 0]);
+                                
+            % Clear listener logs (see positionChildren note).
+%             clc;
+        end
+        
+    end
+    
+    % Private Methods:
+    methods (Access = private)
+        
+        % Callback for resizing table to fit window
         function resizeHandler(obj, ~, ~)
             % Auto resize the table columns (CSS-like responsiveness)
             table_position = getpixelposition(obj.Table);
             obj.Table.ColumnWidth = num2cell(repmat(table_position(3)/3, 1, 3));
         end
         
-        % Callback for editing table parameters.
+        % Callback for editing table parameters
         function parameterEditHandler(obj, src, evt)
             % Set max number of selected parameters. 2 here to match GUI.
             max_parameters = 2;
@@ -234,8 +212,8 @@ classdef speakerExplorer < handle
                 obj.SelectedParam(end) = evt.Indices(1);
             end
             
-            % Update slider labels and extents
-            obj.updateSliders();
+            % Update slider labels.
+            obj.updateControl();
 
             % Simulation is now out of date!
             obj.outOfDate();
@@ -249,29 +227,47 @@ classdef speakerExplorer < handle
                     obj.Sine.Value = 0;
                     obj.Param(3).Label.Enable = 'off';
                     obj.Param(3).Control.Enable = 'off';
+                    obj.Param(3).Display.String = '';
+                    obj.Param(3).Display.Enable = 'off';
                 case 'Sine'
                     obj.Step.Value = 0;
                     obj.Sine.Value = 1;
                     obj.Param(3).Label.Enable = 'on';
                     obj.Param(3).Control.Enable = 'on';
+                    obj.Param(3).Control.Value = 0.5;
+                    obj.Param(3).Display.String = num2str(obj.HiddenEntries.freq);
+                    obj.Param(3).Display.Enable = 'inactive';
             end
             
             % Simulation is now out of date!
             obj.outOfDate();
         end
         
+        % Callback for editing control parameters
+        function controlEditHandler(obj, src, ~, idx)
+            % Logarithmic transform of original value.
+%             base = 
+%             value = src.v
+%             obj.Param(idx).Display.Value = src.Value;
+        end
+        
         % Update the sliders with selected parameters
-        function updateSliders(obj, ~, ~)
+        function updateControl(obj, ~, ~)
            for i = 1:length(obj.SelectedParam)
                obj.Param(i).Label.String = obj.Table.Data{obj.SelectedParam(i), 1};
                obj.Param(i).Label.Enable = 'on';
                obj.Param(i).Control.Enable = 'on';
                obj.Param(i).Control.Value = 0.5;
+               obj.Param(i).Display.String = obj.Table.Data{obj.SelectedParam(i), 2};
+               obj.Param(i).Display.Enable = 'inactive';
            end
            for i = length(obj.SelectedParam) + 1:2
                obj.Param(i).Label.String = ['Parameter ', num2str(i)];
                obj.Param(i).Label.Enable = 'off';
                obj.Param(i).Control.Enable = 'off';
+               obj.Param(i).Display.String = '';
+               obj.Param(i).Display.Enable = 'off';
+               
            end
         end
         
@@ -289,13 +285,26 @@ classdef speakerExplorer < handle
             obj.Simulate.Enable = 'off';
         end
         
-    end
-    
-    % Static Methods:
-    methods (Static)
+        % Create modifiable parameter block
+        function initParameter(obj, parent, label, idx)
+            % Initialise block with scaling:
+            obj.Param(idx).Control = uicontrol(parent, 'style', 'slider', ...
+                                               'Value', 0.5, 'Callback', ...
+                                               {@obj.controlEditHandler, idx});
+            container = obj.createPanel(parent, 'horizontal', false);
+            obj.Param(idx).Label = uicontrol(container, 'style', 'text', ...
+                                                     'String', label);
+            obj.Param(idx).Display = uicontrol(container, 'style', 'edit');
+            
+            % Set initial interactivity:
+            obj.Param(idx).Label.Enable = 'off';
+            obj.Param(idx).Control.Enable = 'off';
+            obj.Param(idx).Display.Enable = 'off';
+                  
+        end
         
-        % Read default values to initialise table.
-        function handle = initTable(parent, path)
+        % Read default values to initialise table
+        function handle = initTable(obj, parent, path)
             active_ws = [];
             
             % Get environment variables from JSON
@@ -310,18 +319,22 @@ classdef speakerExplorer < handle
             % Remove fields with special functionality
             blacklist = {'name', 'freq'};
             for field = blacklist
-                active_ws = rmfield(active_ws, field{:});
+                if isfield(active_ws, field{:})
+                    obj.HiddenEntries.(field{:}) = active_ws.(field{:});
+                    active_ws = rmfield(active_ws, field{:});
+                end
             end
             
             % Generate corresponding data table
             vars = struct2cell(active_ws);
             env = [fieldnames(active_ws), vars, num2cell(false(length(vars), 1))];
             handle = uitable(parent, 'Data', env, 'ColumnEditable', ...
-                             [false, true, true], 'ColumnName', ...
-                             {'Variable', 'Value', 'Parameter?'}, ...
-                             'RowName', []);
+                                 [false, true, true], 'ColumnName', ...
+                               {'Variable', 'Value', 'Parameter?'}, ...
+                                                          'RowName', []);
         end
         
     end
+    
 end
 
