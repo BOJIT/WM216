@@ -62,7 +62,17 @@
             handle.Container = UIFramework.panel(parent, 'vertical', false);
             handle.Slider = uicontrol(handle.Container, 'style','slider');
             ui_div = UIFramework.panel(handle.Container, 'horizontal', false);
-            handle.Label = uicontrol(ui_div, 'style', 'text', 'String', label);
+            handle.Label = uicontrol(ui_div, 'style', 'text');
+            
+            % Choose label type based on arg.
+            if isa(label, 'cell')
+                handle.Label.UserData.Label = label{1};
+                handle.Label.UserData.DisableLabel = label{2};
+            else
+                handle.Label.UserData.Label = label;
+                handle.Label.UserData.DisableLabel = false;
+            end
+            
             handle.Display = uicontrol(ui_div, 'style', 'edit');
             handle.Display.UserData.BaseValue = base_value;
             handle.Display.UserData.Value = base_value;
@@ -99,12 +109,14 @@
         % Handler for arranging UI panels and elements (tiling engine).
         function arrangeHandler(src, ~)
             width = 1/length(src.Children);
+            disp(src);
             switch lower(src.UserData.Stack)
                 % Distribute elements vertically in a container.
                 case 'vertical'
                     i = 0;
                     for child = src.Children'
                         child.Units = 'normalized';
+                        disp(child);
                         child.Position = [0, i*width, 1, width];
                         i = i + 1;
                     end
@@ -114,6 +126,7 @@
                     for child = src.Children'
                         i = i - 1;
                         child.Units = 'normalized';
+                        disp(child);
                         child.Position = [i*width, 0, width, 1];
                     end
                     
@@ -143,7 +156,7 @@
                 cols = width(table.Data);
                 if cols
                     table_pos = getpixelposition(table);
-                    table.ColumnWidth = num2cell(repmat(table_pos(3)/cols, 1, cols));
+                    table.ColumnWidth = num2cell(repmat(table_pos(3)/cols - 1, 1, cols));
                 end
             end
         end
@@ -153,6 +166,7 @@
             src.Slider.Value = 0.5;
             src.Slider.Enable = 'on';
             src.Label.Enable = 'on';
+            src.Label.String = src.Label.UserData.Label;
             src.Display.Enable = src.Display.UserData.Editable;
             src.Display.String = num2str(src.Display.UserData.BaseValue);
         end
@@ -161,7 +175,11 @@
         function parameterDisableHandler(src, ~)
             src.Slider.Enable = 'off';
             src.Label.Enable = 'off';
+            if src.Label.UserData.DisableLabel ~= false
+                src.Label.String = src.Label.UserData.DisableLabel; 
+            end
             src.Display.Enable = 'off';
+            src.Display.String = '';
         end
         
         % Handler to change a parameter's slider value.
