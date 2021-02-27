@@ -13,13 +13,10 @@ classdef speakerExplorer < UIFramework
         Table;
         Message;
         Simulate;
-        
-        % Array of result axes
-        Axes = {};
+        Axes;
         
         % Application configuration:
         NumParams = 2;
-        NumAxes = 2;
     end
 
     % Public Methods (non-application-specific):
@@ -77,19 +74,15 @@ classdef speakerExplorer < UIFramework
             obj.Table = obj.loadWorkspace(parameter_panel, 'src/model_parameters.json');
             
             %---------------- Create model results panel -----------------%
-            
-            % Create graph axes
             results_panel = obj.panel(fig, 'vertical', true, [0.35, 0.05, 0.65, 0.95]);
             results_panel.Title = 'Results';
             
-%             for i = 1:obj.NumAxes
-%                 obj.Axes{i} = axes(results_panel);
-%                 grid(obj.Axes{i}, 'on');
-%             end
-            obj.Axes{1} = axes(results_panel);
-            grid(obj.Axes{1}, 'on');
-            obj.Axes{2} = axes(results_panel);
-            grid(obj.Axes{2}, 'on');
+            col = 0:0.5:100; % ONLY HERE FOR TESTING - remove later!
+            
+            % Create empty stacked plot.
+            obj.Axes = stackedplot(results_panel, col', [0*col', 0*col', 0*col']);
+            grid(obj.Axes, 'on');
+
             
             %---------------- Create model message panel -----------------%
             message_panel = obj.panel(fig, 'vertical', false, [0.35, 0, 0.65, 0.05]);
