@@ -3,19 +3,21 @@ classdef speakerExplorer < UIFramework
     properties
         Workspace = struct; % Stores simulation workspace variables
         
+        % Parameters
         Param = {}; % Parameter 'block' handles
         CurrentParam = []; % Rolling selection memory - for checkboxes
         
-        % UI Handles
-        Step;   % Radiobutton Handle
-        Sine;   % Radiobutton Handle
-        Table;  % Parameter table
-        Message;    % General-purpose message box
-        Simulate;   % Simulation button handle
+        % UI object handles
+        Step;
+        Sine;
+        Table;
+        Message;
+        Simulate;
         
+        % Array of result axes
         Axes = {};
         
-        % Application Configuration:
+        % Application configuration:
         NumParams = 2;
         NumAxes = 2;
     end
@@ -201,11 +203,11 @@ classdef speakerExplorer < UIFramework
             vars = struct2cell(active_ws);
             env = [fieldnames(active_ws), vars, num2cell(false(length(vars), 1))];
             
-            handle = uitable(parent, 'Data', env, 'ColumnEditable', ...
-                             [false, true, true], 'ColumnName', ...
-                             {'Variable', 'Value', 'Parameter?'}, ...
-                             'RowName', [], 'CellEditCallback', ...
-                             @obj.parameterEditHandler);
+            handle = obj.table(parent, 'Data', env, 'ColumnEditable', ...
+                               [false, true, true], 'ColumnName', ...
+                               {'Variable', 'Value', 'Parameter?'}, ...
+                               'RowName', [], 'CellEditCallback', ...
+                               @obj.parameterEditHandler);
         end
         
     end

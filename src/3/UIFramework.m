@@ -100,6 +100,12 @@
             % Parameter is enabled by default.
             handle.enable();
         end
+        
+        % Create table - wrapper to handle correct column resizing.
+        function handle = table(varargin)
+            handle = uitable(varargin{:});
+            UIFramework.resizeHandler(handle);
+        end
     end
     
     % UIFramework static methods that are not exposed.
@@ -108,35 +114,34 @@
         
         % Handler for arranging UI panels and elements (tiling engine).
         function arrangeHandler(src, ~)
+            % Variable shortenings:
             width = 1/length(src.Children);
-            disp(src);
-            switch lower(src.UserData.Stack)
+            
+            i = 0;
+            for child = src.Children'
+                % Ensure all applicable objects are normalised.
+                if any(strcmpi(src.UserData.Stack, {'normal', 'vertical', 'horizontal'}))
+                    if isprop(child, 'Units') 
+                        child.Units = 'normalized';
+                    end
+                end
+                
                 % Distribute elements vertically in a container.
-                case 'vertical'
-                    i = 0;
-                    for child = src.Children'
-                        child.Units = 'normalized';
-                        disp(child);
-                        child.Position = [0, i*width, 1, width];
-                        i = i + 1;
-                    end
+                if strcmpi(src.UserData.Stack, 'vertical')
+                    child.Position = [0, i*width, 1, width];
+                end
+                
                 % Distribute elements horizontally in a container.
-                case 'horizontal'
-                    i = length(src.Children);
-                    for child = src.Children'
-                        i = i - 1;
-                        child.Units = 'normalized';
-                        disp(child);
-                        child.Position = [i*width, 0, width, 1];
-                    end
-                    
-                % If not tiled, ensure children use normalized units.
-                case 'normal'
-                    for child = src.Children'
-                        if isprop(child, 'Units')
-                            child.Units = 'normalized';
-                        end
-                    end
+                if strcmpi(src.UserData.Stack, 'horizontal')
+                    child.Position = [(length(src.Children) - 1 - i)*width, 0, width, 1];
+                end
+                
+                % Call resize handler for any non-normalised tables.
+                if isgraphics(child, 'uitable')
+                    UIFramework.resizeHandler(src);
+                end
+                
+                i = i + 1;
             end
         end
         
