@@ -143,7 +143,11 @@
                 
                 i = i + 1;
             end
-            disp(src.Children);
+            
+            if verLessThan('matlab', '9.8')
+                % Clear eventData console print.
+                fprintf(repmat('\b', 1, 38));
+            end
         end
         
         % Handler for dealing with figure close prompts.
@@ -159,7 +163,7 @@
             % Auto resize any table columns (CSS-like responsiveness)
             tables = findobj(src, 'Type', 'uitable');
             for table = tables'
-                cols = width(table.Data);
+                cols = size(table.Data, 2);
                 if cols
                     table_pos = getpixelposition(table);
                     table.ColumnWidth = num2cell(repmat(table_pos(3)/cols - 1, 1, cols));

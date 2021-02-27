@@ -53,7 +53,7 @@ classdef speakerExplorer < UIFramework
             %----------------- Create model config panel -----------------%
             config_panel = obj.panel(fig, 'vertical', true, [0, 0.3, 0.35, 0.2]);
             config_panel.Title = 'Configuration';
-            
+
             % Simulation overview options
             config_options = obj.panel(config_panel, 'horizontal', false);
             obj.Step = uicontrol(config_options, 'style', 'radio', ...
@@ -68,7 +68,7 @@ classdef speakerExplorer < UIFramework
             % Frequency parameter/control
             obj.Param{obj.NumParams + 1} = obj.parameter(config_panel, 'Frequency', 1000, true);
             obj.Param{obj.NumParams + 1}.disable();
-            
+
             %--------------- Create model parameter panel ----------------%
             parameter_panel = obj.panel(fig, 'vertical', true, [0, 0.5, 0.35, 0.5]);
             parameter_panel.Title = 'Parameters';
