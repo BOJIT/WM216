@@ -143,6 +143,7 @@
                 
                 i = i + 1;
             end
+            disp(src.Children);
         end
         
         % Handler for dealing with figure close prompts.

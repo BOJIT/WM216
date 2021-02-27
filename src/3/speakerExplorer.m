@@ -75,28 +75,27 @@ classdef speakerExplorer < UIFramework
             
             % Add table with responsive resizing:
             obj.Table = obj.loadWorkspace(parameter_panel, 'src/model_parameters.json');
+            
             %---------------- Create model results panel -----------------%
             
             % Create graph axes
-%             results_panel = obj.panel(fig, 'vertical', true, [0.35, 0.05, 0.65, 0.95]);
-%             results_panel.Title = 'Results';
+            results_panel = obj.panel(fig, 'vertical', true, [0.35, 0.05, 0.65, 0.95]);
+            results_panel.Title = 'Results';
             
 %             for i = 1:obj.NumAxes
 %                 obj.Axes{i} = axes(results_panel);
 %                 grid(obj.Axes{i}, 'on');
 %             end
-            obj.Axes{1} = axes(fig, 'OuterPosition', [0.35, 0.525, 0.65, 0.475]);
+            obj.Axes{1} = axes(results_panel);
             grid(obj.Axes{1}, 'on');
-            obj.Axes{2} = axes(fig, 'OuterPosition', [0.35, 0.05, 0.65, 0.475]);
+            obj.Axes{2} = axes(results_panel);
             grid(obj.Axes{2}, 'on');
             
             %---------------- Create model message panel -----------------%
             message_panel = obj.panel(fig, 'vertical', false, [0.35, 0, 0.65, 0.05]);
             obj.Message = uicontrol(message_panel, 'style', 'text', ...
                                            'ForegroundColor', [1, 0, 0]);
-
-            % Clear listener logs (see positionChildren note).
-%             clc;
+            
         end
         
     end
