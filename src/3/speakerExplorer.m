@@ -17,6 +17,7 @@ classdef speakerExplorer < UIFramework
         
         % Application configuration:
         NumParams = 2;
+        ModelName = 'speakerModel';
     end
 
     % Public Methods (non-application-specific):
@@ -80,8 +81,8 @@ classdef speakerExplorer < UIFramework
             col = 0:0.5:100; % ONLY HERE FOR TESTING - remove later!
             
             % Create empty stacked plot.
-            obj.Axes = stackedplot(results_panel, col', [0*col', 0*col', 0*col']);
-            grid(obj.Axes, 'on');
+%             obj.Axes = stackedplot(results_panel, col', [0*col', 0*col', 0*col']);
+%             grid(obj.Axes, 'on');
 
             
             %---------------- Create model message panel -----------------%
@@ -163,6 +164,15 @@ classdef speakerExplorer < UIFramework
         
         % Run simulation and show results!
         function startSim(obj, ~, ~)
+            % Update workspace struct with current variables.
+            for row = obj.Table.Data'
+                obj.Workspace.(row{1}) = row{2};
+            end
+            
+            % Request headless simulation.
+            simInitialise(false, obj.ModelName, obj.Workspace);
+            
+            % @TODO update graphs
             
             
             % Don't allow another simulation until change is made.
@@ -177,7 +187,7 @@ classdef speakerExplorer < UIFramework
             json = fileread(path);
             param = jsondecode(json);
             for ws = param.workspace'
-                if strcmp(ws{:}.name, 'speakerModel')
+                if strcmp(ws{:}.name, obj.ModelName)
                     active_ws = ws{:};
                 end
             end

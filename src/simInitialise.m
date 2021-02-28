@@ -3,7 +3,7 @@
 % AUTHOR:       James Bennion-Pedley
 % DATE CREATED: 19.02.21
 
-function sim = simInitialise(self, name, param)
+function sim = simInitialise(self, name, param, sweep)
     % SIMINITIALISE Function for setting environment variables
     % for Simulink projects.
     % This function is used for both initialising environment
@@ -17,7 +17,8 @@ function sim = simInitialise(self, name, param)
     %       and multiple simulink files can share environments,
     %       but using the simulink file name is recommended.
     %
-    % PARAM environment struct to pass in if doing batch operations.
+    % PARAM workspace struct with environment variables.
+    % SWEEP struct of value arrays to create parallel simulation pool.
     disp('Initialising environment variables...');
     
     active_ws = [];
@@ -52,6 +53,14 @@ function sim = simInitialise(self, name, param)
     else
         if nargin < 3
             error('Parameters required for initialisation!');
+        end
+        
+        % Create simulation input object.
+        disp(param);
+        
+        % Add parallel simulation sweeps if given.
+        if nargin >= 4
+            disp(sweep)
         end
     end
 end
