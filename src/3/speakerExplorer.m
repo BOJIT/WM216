@@ -1,7 +1,8 @@
 classdef speakerExplorer < UIFramework
     
     properties
-        Workspace = struct; % Stores simulation workspace variables
+        % Simulation workspace dataset:
+        Workspace = struct;
         
         % Parameters
         Param = {}; % Parameter 'block' handles
@@ -10,6 +11,8 @@ classdef speakerExplorer < UIFramework
         % UI object handles
         Step;
         Sine;
+        Couple;
+        Frequency;
         Table;
         Message;
         Simulate;
@@ -18,6 +21,7 @@ classdef speakerExplorer < UIFramework
         % Application configuration:
         NumParams = 2;
         ModelName = 'speakerModel';
+        Blacklist = {'name', 'freq', 'step', 'couple'}; % Special fields.
     end
 
     % Public Methods (non-application-specific):
@@ -60,12 +64,13 @@ classdef speakerExplorer < UIFramework
             obj.Sine = uicontrol(config_options, 'style', 'radio', ...
                                      'String', 'Sine', 'Value', 0, ...
                                      'Callback', @obj.configEditHandler);
-            uicontrol(config_options, 'style', 'check', 'String', 'Coupled', ...
-                                  'Value', 1, 'Callback', @obj.configEditHandler);
+            obj.Couple = uicontrol(config_options, 'style', 'check', ...
+                                      'String', 'Couple', 'Value', 1, ...
+                                      'Callback', @obj.configEditHandler);
             
             % Frequency parameter/control
-            obj.Param{obj.NumParams + 1} = obj.parameter(config_panel, 'Frequency', 1000, true);
-            obj.Param{obj.NumParams + 1}.disable();
+            obj.Frequency = obj.parameter(config_panel, 'Frequency', 1000, true);
+            obj.Frequency.disable();
 
             %--------------- Create model parameter panel ----------------%
             parameter_panel = obj.panel(fig, 'vertical', true, [0, 0.5, 0.35, 0.5]);
@@ -77,8 +82,6 @@ classdef speakerExplorer < UIFramework
             %---------------- Create model results panel -----------------%
             results_panel = obj.panel(fig, 'vertical', true, [0.35, 0.05, 0.65, 0.95]);
             results_panel.Title = 'Results';
-            
-            col = 0:0.5:100; % ONLY HERE FOR TESTING - remove later!
             
             % Create empty stacked plot.
 %             obj.Axes = stackedplot(results_panel, col', [0*col', 0*col', 0*col']);
@@ -140,11 +143,11 @@ classdef speakerExplorer < UIFramework
                 case 'Step'
                     obj.Step.Value = 1;
                     obj.Sine.Value = 0;
-                    obj.Param{end}.disable();
+                    obj.Frequency.disable();
                 case 'Sine'
                     obj.Step.Value = 0;
                     obj.Sine.Value = 1;
-                    obj.Param{end}.enable();
+                    obj.Frequency.enable();
             end
             
             % Simulation is now out of date!
@@ -169,11 +172,27 @@ classdef speakerExplorer < UIFramework
                 obj.Workspace.(row{1}) = row{2};
             end
             
+            % Get special config options.
+            obj.Workspace.freq = obj.Frequency.Display.UserData.Value;
+            obj.Workspace.step = obj.Step.Value;
+            obj.Workspace.couple = obj.Couple.Value;
+            
             % Request headless simulation.
-            SimFramework(false, obj.ModelName, obj.Workspace);
+%             results = SimFramework(false, obj.ModelName, obj.Workspace);
             
-            % @TODO update graphs
+            % TEMP batch sim test:
+            sweep = struct;
+            sweep.L = 10:10:100;
+            parallel = SimFramework(false, obj.ModelName, obj.Workspace, sweep);
             
+            disp(parallel);
+            
+            % @TODO update graphs TEMPORARY CODE!!!!
+            figure;
+            hold on;
+            for stream = parallel
+                plot(stream.yout{1}.Values);
+            end
             
             % Don't allow another simulation until change is made.
             obj.allowSim(false);
@@ -192,9 +211,8 @@ classdef speakerExplorer < UIFramework
                 end
             end
             
-            % Remove fields with special functionality
-            blacklist = {'name', 'freq'};
-            for field = blacklist
+            % Make special fields non-editable.
+            for field = obj.Blacklist
                 if isfield(active_ws, field{:})
                     obj.Workspace.(field{:}) = active_ws.(field{:});
                     active_ws = rmfield(active_ws, field{:});

@@ -4,12 +4,16 @@
         {
             "name": "speakerModel",
             "freq": 1000,
+            "step": true,
+            "couple": true,
             "K1": 5,
-            "Vb": 0.1,
             "R": 75,
-            "L": 0.5,
-            "Vf": 1000,
-            "Vctrl": 1
+            "L": 20,
+            "Vb": 0.1,
+            "Vstep": 1,
+            "Vsin": 1,
+            "Fstep": 10,
+            "Fsin": 10
         },
         {
             "name": "example"
