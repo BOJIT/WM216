@@ -170,7 +170,7 @@ classdef speakerExplorer < UIFramework
             end
             
             % Request headless simulation.
-            simInitialise(false, obj.ModelName, obj.Workspace);
+            SimFramework(false, obj.ModelName, obj.Workspace);
             
             % @TODO update graphs
             

@@ -3,7 +3,7 @@
 % AUTHOR:       James Bennion-Pedley
 % DATE CREATED: 19.02.21
 
-function sim = simInitialise(self, name, param, sweep)
+function sim = SimFramework(self, name, param, sweep)
     % SIMINITIALISE Function for setting environment variables
     % for Simulink projects.
     % This function is used for both initialising environment
