@@ -3,6 +3,17 @@
 % AUTHOR:       James Bennion-Pedley
 % DATE CREATED: 19.02.21
 
+%{
+Note for this framework to operate correctly the following code should be
+added to the 'InitFcn' callback of any Simulink files:
+
+```
+if ~exist('self', 'var')
+   SimFramework(true, 'MODEL NAME');
+end
+```
+%}
+
 function sim_out = SimFramework(self, name, param, sweep)
     % SIMINITIALISE Function for setting environment variables
     % for Simulink projects.
@@ -28,10 +39,8 @@ function sim_out = SimFramework(self, name, param, sweep)
             error('Name required for initialisation!');
         end
         
-        disp('Initialising environment variables...');
-        
         % Get environment variables from JSON
-        json = fileread('src/model_parameters.json');
+        json = fileread('model_parameters.json');
         param = jsondecode(json);
         for ws = param.workspace'
             if strcmp(ws{:}.name, name)
@@ -45,23 +54,20 @@ function sim_out = SimFramework(self, name, param, sweep)
         else
             fn = fieldnames(active_ws);
             for field = fn'
-%                 assignin('caller', field{:}, active_ws.(field{:}));
-                % TODO stop this being called when initialising
-                % programatically.
+                assignin('caller', field{:}, active_ws.(field{:}));
             end
         end
         
         % Simulation output not used when 'self' == true.
         sim_out = [];
         
-        disp('Environment Variables Loaded.');
-        
     else
         if nargin < 3
             error('Parameters required for initialisation!');
         end
         
-        disp('Starting Simulation...');
+        % Add 'self' tag - this stops this file being called back!
+        param.self = true;
         
         % Create base simulation input.
         sim_base = Simulink.SimulationInput(name);
@@ -73,16 +79,16 @@ function sim_out = SimFramework(self, name, param, sweep)
         % Create one or many simulation objects.
         if nargin >= 4
             % THIS IS TEMPORARY FOR TESTING!!!
+            disp(sweep);
             for i = 1:length(sweep.L)
                 sim_par(i) = sim_base;
                 sim_par(i) = sim_par(i).setVariable('L', sweep.L(i));
             end
+            
             sim_out = parsim(sim_par);
         else
             sim_out = sim(sim_base);
         end
-        
-        disp('Simulation Finished!');
         
     end
 end

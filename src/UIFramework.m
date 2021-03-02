@@ -1,4 +1,9 @@
- classdef UIFramework < handle
+% DESCRIPTION:  Startup script for setting Simulink environment
+%               variables and automating tests.
+% AUTHOR:       James Bennion-Pedley
+% DATE CREATED: 19.02.21
+
+classdef UIFramework < handle
     % UIFramework - generic UI class for automating layouts.
     % This entire framework is static, so only one instance of all these
     % functions is required to handle multiple figures.
@@ -55,7 +60,7 @@
         end
         
         % Create parameter with label, slider and value.
-        function handle = parameter(parent, label, base_value, edit, hook)
+        function handle = parameter(parent, label, base_value, range, edit, hook)
             handle = struct;
             
             % Assign object handles to struct fields.
@@ -76,8 +81,10 @@
             handle.Display = uicontrol(ui_div, 'style', 'edit');
             handle.Display.UserData.BaseValue = base_value;
             handle.Display.UserData.Value = base_value;
+            handle.Display.UserData.Range = range;
+            
             % Choose whether the display is directly editable.
-            if (nargin >= 4) && (edit == true)
+            if (nargin >= 5) && (edit == true)
                 handle.Display.UserData.Editable = 'on';
                 handle.Display.Callback = {@UIFramework.parameterEditHandler, handle};
             else
@@ -85,7 +92,7 @@
             end
             
             % Create slider callback with/without hook if required.
-            if nargin >= 5
+            if nargin >= 6
                 handle.Slider.Callback = {@UIFramework.parameterSliderHandler, handle, hook};
             else
                 handle.Slider.Callback = {@UIFramework.parameterSliderHandler, handle};
@@ -195,7 +202,8 @@
         % Handler to change a parameter's slider value.
         function parameterSliderHandler(src, evt, handle, hook)
             % Scale base value based on slider and update display.
-            val = 2*src.Value*handle.Display.UserData.BaseValue;
+            val = handle.Display.UserData.BaseValue + ...
+                        (src.Value - 0.5)*handle.Display.UserData.Range;
             handle.Display.String = num2str(val);
             handle.Display.UserData.Value = val;
             

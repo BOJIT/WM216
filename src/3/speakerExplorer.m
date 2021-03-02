@@ -20,11 +20,16 @@ classdef speakerExplorer < UIFramework
         
         % Application configuration:
         NumParams = 2;
+        ParamResolution = 20;
         ModelName = 'speakerModel';
         Blacklist = {'name', 'freq', 'step', 'couple'}; % Special fields.
+        
+        % Be mindful setting these parameters. The max number of parallel
+        % simulations initiated is set by ParamResolution^NumParams.
+        % Setting these numbers too high will lead to long simulation times.
     end
 
-    % Public Methods (non-application-specific):
+    % Public Methods:
     methods
         
         % Initialise GUI
@@ -36,6 +41,13 @@ classdef speakerExplorer < UIFramework
             % General figure/container structure
             fig = obj.figure();
             fig.Name = 'Speaker Explorer';
+
+            %--------------- Create model parameter panel ----------------%
+            parameter_panel = obj.panel(fig, 'vertical', true, [0, 0.5, 0.35, 0.5]);
+            parameter_panel.Title = 'Parameters';
+            
+            % Add table with responsive resizing:
+            obj.Table = obj.loadWorkspace(parameter_panel, 'model_parameters.json');
             
             %---------------- Create model control panel -----------------%
             control_panel = obj.panel(fig, 'vertical', true, [0, 0, 0.35, 0.3]);
@@ -44,7 +56,7 @@ classdef speakerExplorer < UIFramework
             % Custom model parameters/controls
             for i = 1:obj.NumParams
                 obj.Param{i} = obj.parameter(control_panel, {'null', ...
-                                  ['Parameter ', num2str(i)]}, 10, false);
+                                ['Parameter ', num2str(i)]}, 0, 0, false);
                 obj.Param{i}.disable();
             end
 
@@ -69,15 +81,9 @@ classdef speakerExplorer < UIFramework
                                       'Callback', @obj.configEditHandler);
             
             % Frequency parameter/control
-            obj.Frequency = obj.parameter(config_panel, 'Frequency', 1000, true);
+            obj.Frequency = obj.parameter(config_panel, 'Frequency', ...
+                                          obj.Workspace.freq, obj.Workspace.freq, true);
             obj.Frequency.disable();
-
-            %--------------- Create model parameter panel ----------------%
-            parameter_panel = obj.panel(fig, 'vertical', true, [0, 0.5, 0.35, 0.5]);
-            parameter_panel.Title = 'Parameters';
-            
-            % Add table with responsive resizing:
-            obj.Table = obj.loadWorkspace(parameter_panel, 'src/model_parameters.json');
             
             %---------------- Create model results panel -----------------%
             results_panel = obj.panel(fig, 'vertical', true, [0.35, 0.05, 0.65, 0.95]);
@@ -127,6 +133,7 @@ classdef speakerExplorer < UIFramework
                     % Change labels and re-enable.
                     obj.Param{i}.Label.UserData.Label = obj.Table.Data{obj.CurrentParam(i), 1};
                     obj.Param{i}.Display.UserData.BaseValue = obj.Table.Data{obj.CurrentParam(i), 2};
+                    obj.Param{i}.Display.UserData.Range = obj.Table.Data{obj.CurrentParam(i), 2};
                     obj.Param{i}.enable();
                 else
                     obj.Param{i}.disable();
@@ -167,6 +174,9 @@ classdef speakerExplorer < UIFramework
         
         % Run simulation and show results!
         function startSim(obj, ~, ~)
+%             % Set pointer to loading symbol:
+%             set(obj.Fig, 'pointer', 'watch');
+            
             % Update workspace struct with current variables.
             for row = obj.Table.Data'
                 obj.Workspace.(row{1}) = row{2};
@@ -177,20 +187,27 @@ classdef speakerExplorer < UIFramework
             obj.Workspace.step = obj.Step.Value;
             obj.Workspace.couple = obj.Couple.Value;
             
-            % Request headless simulation.
-%             results = SimFramework(false, obj.ModelName, obj.Workspace);
-            
-            % TEMP batch sim test:
-            sweep = struct;
-            sweep.L = 10:10:100;
-            parallel = SimFramework(false, obj.ModelName, obj.Workspace, sweep);
-            
-            disp(parallel);
+            % Request headless simulation (single or parallel).
+            if isempty(obj.CurrentParam)
+                results = SimFramework(false, obj.ModelName, obj.Workspace);
+            else
+                sweep = struct;
+                for i = 1:length(obj.CurrentParam)
+                    % Create sweep struct from parameter ranges.
+                    param = obj.Param{i}.Label.UserData.Label;
+                    base_val = obj.Param{i}.Display.UserData.BaseValue;
+                    range = obj.Param{i}.Display.UserData.Range;
+                    sweep.(param) = linspace(base_val - range/2, ...
+                                             base_val + range/2, ...
+                                             obj.ParamResolution);                          
+                end
+                results = SimFramework(false, obj.ModelName, obj.Workspace, sweep);
+            end
             
             % @TODO update graphs TEMPORARY CODE!!!!
             figure;
             hold on;
-            for stream = parallel
+            for stream = results
                 plot(stream.yout{1}.Values);
             end
             
