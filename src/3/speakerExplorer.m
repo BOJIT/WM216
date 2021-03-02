@@ -19,7 +19,7 @@ classdef speakerExplorer < UIFramework
         Axes;
         
         % Application configuration:
-        NumParams = 2;
+        NumParams = 3;
         ParamResolution = 20;
         ModelName = 'speakerModel';
         Blacklist = {'name', 'freq', 'step', 'couple'}; % Special fields.

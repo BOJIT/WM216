@@ -81,15 +81,14 @@ function sim_out = SimFramework(self, name, param, sweep)
             fn = fieldnames(sweep);
             
             % Struct sweep to preallocate simulation array.
-            sim_num = 1;
-            for field = fn'
-                sim_num = length(sweep.(field{:}))*sim_num;
+            sim_dim = zeros(1, length(fn));
+            for i = 1:length(fn)
+                sim_dim(i) = length(sweep.(fn{i}));
             end
+            sim_par = repmat(sim_base, sim_dim);
             
-            sim_part = repmat(sim_base, sim_num, 1);
-            
-            for i = 1:length(sweep.L)
-                sim_par(i) = sim_base;
+            for i = 1:length(sim_par)
+                
                 sim_par(i) = sim_par(i).setVariable('L', sweep.L(i));
             end
             
@@ -100,3 +99,14 @@ function sim_out = SimFramework(self, name, param, sweep)
         
     end
 end
+
+% Function for generating the combinations of all struct inputs.
+function output = struct_combinations(input)
+    output = struct;
+    for i = 1:length(input)
+        fn = fieldnames(input(i));
+        output(i) = input(i)
+        
+    end
+end
+
