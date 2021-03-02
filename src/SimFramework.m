@@ -86,7 +86,7 @@ function sim_out = SimFramework(self, name, param, sweep)
                 sim_num = length(sweep.(field{:}))*sim_num;
             end
             
-%             sim_part = repmat(sim_base, sim_num, 1);
+            sim_part = repmat(sim_base, sim_num, 1);
             
             for i = 1:length(sweep.L)
                 sim_par(i) = sim_base;
