@@ -1,8 +1,10 @@
 % Testing recursive struct method
+clc;clear;close all;
 
 model = struct;
-model.L = 1:10;
-model.R = 1:5;
+model.L = 1:5;
+model.R = 1:4;
+model.X = 1:3;
 
 % disp(model);
 
@@ -12,32 +14,33 @@ disp(out);
 
 % Function for generating the combinations of all struct inputs.
 function output = struct_combinations(input)
-    for i = 1:length(input)
-        % Get first field with non-scalar value.
-        fn = fieldnames(input(i));
-        head = 1;
-        for j = 1:length(fn)
-            if length(input(i).(fn{j})) > 1
-                break;
-            end
-            head = head + 1;
-        end
-        disp(head);
-        disp(input(i));
-        
-        % Create next struct dimension.
-        output = 
-        for j = 1:length(input(i).(fn{head}))
-            output(i, j) = input(i);
-            output(i, j).(fn{head}) = input(i).(fn{head})(j);
-        end
+    % Get fields and lengths.
+    fn = fieldnames(input);
+    output_dim = zeros(1, length(fn));
+    for i = 1:length(fn)
+        output_dim(i) = length(input.(fn{i}));
+    end
 
-        % Recurse if vectors still exist.
-        if head >= length(fn)
-            % Recursion is done!
-            return;
+    % Create dynamic slicing parameters (remove trailing singleton).
+    output_dim = output_dim(1:find(output_dim - 1,1,'last'));
+    dim = length(output_dim);
+    slice = repmat({':'}, 1, length(output_dim));
+
+    % Preallocate output struct.
+    output = repmat(input, [output_dim, 1]);
+
+    % Fill struct slices recursively.
+    for i = 1:size(output, dim)
+         temp = input;
+         temp.(fn{dim}) = input.(fn{dim})(i);
+         slice{dim} = i;
+         disp(temp);
+         % Check if recursion has reached limit.
+        if dim > 1
+                 output(slice{:}) = struct_combinations(temp);
         else
-            output = struct_combinations(output);
+            % Pass input if singleton.
+            output(slice{:}) = temp;
         end
     end
 end
