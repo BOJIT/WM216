@@ -78,8 +78,16 @@ function sim_out = SimFramework(self, name, param, sweep)
 
         % Create one or many simulation objects.
         if nargin >= 4
-            % THIS IS TEMPORARY FOR TESTING!!!
-            disp(sweep);
+            fn = fieldnames(sweep);
+            
+            % Struct sweep to preallocate simulation array.
+            sim_num = 1;
+            for field = fn'
+                sim_num = length(sweep.(field{:}))*sim_num;
+            end
+            
+%             sim_part = repmat(sim_base, sim_num, 1);
+            
             for i = 1:length(sweep.L)
                 sim_par(i) = sim_base;
                 sim_par(i) = sim_par(i).setVariable('L', sweep.L(i));
