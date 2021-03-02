@@ -207,7 +207,7 @@ classdef speakerExplorer < UIFramework
             % @TODO update graphs TEMPORARY CODE!!!!
             figure;
             hold on;
-            for stream = results
+            for stream = results'
                 plot(stream.yout{1}.Values);
             end
             

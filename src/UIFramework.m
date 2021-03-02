@@ -173,7 +173,9 @@ classdef UIFramework < handle
                 cols = size(table.Data, 2);
                 if cols
                     table_pos = getpixelposition(table);
-                    table.ColumnWidth = num2cell(repmat(table_pos(3)/cols - 1, 1, cols));
+                    % Set widths excluding scroll bar.
+                    table.ColumnWidth = num2cell(repmat(table_pos(3)/cols ...
+                                                          - 20/cols, 1, cols));
                 end
             end
         end

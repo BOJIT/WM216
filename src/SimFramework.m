@@ -71,28 +71,18 @@ function sim_out = SimFramework(self, name, param, sweep)
         
         % Create base simulation input.
         sim_base = Simulink.SimulationInput(name);
-        fn = fieldnames(param);
-        for field = fn'
-            sim_base = sim_base.setVariable(field{:}, param.(field{:}));
-        end
+        sim_base = sim_struct(param, sim_base);
 
         % Create one or many simulation objects.
         if nargin >= 4
-            fn = fieldnames(sweep);
+            % Struct recursion to preallocate simulation array.
+            sim_vars = struct_combinations(sweep);
+            sim_in = repmat(sim_base, size(sim_vars));
             
-            % Struct sweep to preallocate simulation array.
-            sim_dim = zeros(1, length(fn));
-            for i = 1:length(fn)
-                sim_dim(i) = length(sweep.(fn{i}));
-            end
-            sim_par = repmat(sim_base, sim_dim);
-            
-            for i = 1:length(sim_par)
-                
-                sim_par(i) = sim_par(i).setVariable('L', sweep.L(i));
-            end
-            
-            sim_out = parsim(sim_par);
+            % Create simulation objects with each parameter.
+            sim_in = arrayfun(@(x, y) sim_struct(x, y), sim_vars, sim_in);
+
+            sim_out = parsim(sim_in);
         else
             sim_out = sim(sim_base);
         end
@@ -102,11 +92,41 @@ end
 
 % Function for generating the combinations of all struct inputs.
 function output = struct_combinations(input)
-    output = struct;
-    for i = 1:length(input)
-        fn = fieldnames(input(i));
-        output(i) = input(i)
-        
+    % Get fields and lengths.
+    fn = fieldnames(input);
+    output_dim = zeros(1, length(fn));
+    for i = 1:length(fn)
+        output_dim(i) = length(input.(fn{i}));
+    end
+
+    % Create dynamic slicing parameters (remove trailing singleton).
+    output_dim = output_dim(1:find(output_dim - 1,1,'last'));
+    dim = length(output_dim);
+    slice = repmat({':'}, 1, length(output_dim));
+
+    % Preallocate output struct.
+    output = repmat(input, [output_dim, 1]);
+
+    % Fill struct slices recursively.
+    for i = 1:size(output, dim)
+         temp = input;
+         temp.(fn{dim}) = input.(fn{dim})(i);
+         slice{dim} = i;
+         % Check if recursion has reached limit.
+        if dim > 1
+            output(slice{:}) = struct_combinations(temp);
+        else
+            % Pass input if singleton.
+            output(slice{:}) = temp;
+        end
+    end
+end
+
+% Function to add struct fields to a simulink input.
+function sim_in = sim_struct(sim_struct, sim_in)
+    fn = fieldnames(sim_struct);
+    for field = fn'
+        sim_in = sim_in.setVariable(field{:}, sim_struct.(field{:}));
     end
 end
 
