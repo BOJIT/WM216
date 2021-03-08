@@ -16,11 +16,11 @@ classdef speakerExplorer < UIFramework
         Table;
         Message;
         Simulate;
-        Axes;
+        Axes = {};
         
         % Application configuration:
-        NumParams = 3;
-        ParamResolution = 20;
+        NumParams = 2;
+        ParamResolution = 10;
         ModelName = 'speakerModel';
         Blacklist = {'name', 'freq', 'step', 'couple'}; % Special fields.
         
@@ -62,7 +62,7 @@ classdef speakerExplorer < UIFramework
 
             % Simulation button
             obj.Simulate = uicontrol(control_panel, 'String', 'Simulate', ...
-                                                    'Callback', @obj.startSim);
+                                              'Callback', {@obj.startSim, fig});
             
             %----------------- Create model config panel -----------------%
             config_panel = obj.panel(fig, 'vertical', true, [0, 0.3, 0.35, 0.2]);
@@ -86,13 +86,12 @@ classdef speakerExplorer < UIFramework
             obj.Frequency.disable();
             
             %---------------- Create model results panel -----------------%
-            results_panel = obj.panel(fig, 'vertical', true, [0.35, 0.05, 0.65, 0.95]);
-            results_panel.Title = 'Results';
-            
-            % Create empty stacked plot.
-%             obj.Axes = stackedplot(results_panel, col', [0*col', 0*col', 0*col']);
-%             grid(obj.Axes, 'on');
-
+            uicontrol(fig, 'style', 'text', 'String', 'Simulation Results:', ...
+                            'FontSize', 15, 'Position', [0.35, 0.95, 0.65, 0.05]);
+            obj.Axes{1} = axes(fig, 'OuterPosition', [0.35, 0.5, 0.65, 0.45]);
+            obj.Axes{1}.NextPlot = 'add';
+            obj.Axes{2} = axes(fig, 'OuterPosition', [0.35, 0.05, 0.65, 0.45]);
+            obj.Axes{2}.NextPlot = 'add';
             
             %---------------- Create model message panel -----------------%
             message_panel = obj.panel(fig, 'vertical', false, [0.35, 0, 0.65, 0.05]);
@@ -173,9 +172,10 @@ classdef speakerExplorer < UIFramework
         end
         
         % Run simulation and show results!
-        function startSim(obj, ~, ~)
-%             % Set pointer to loading symbol:
-%             set(obj.Fig, 'pointer', 'watch');
+        function startSim(obj, ~, ~, load_handle)
+            % Set pointer to loading symbol:
+            set(load_handle, 'pointer', 'watch');
+            drawnow;
             
             % Update workspace struct with current variables.
             for row = obj.Table.Data'
@@ -204,12 +204,25 @@ classdef speakerExplorer < UIFramework
                 results = SimFramework(false, obj.ModelName, obj.Workspace, sweep);
             end
             
-            % @TODO update graphs TEMPORARY CODE!!!!
-            figure;
-            hold on;
-            for stream = results'
-                plot(stream.yout{1}.Values);
-            end
+            % Clear previous graph content and set labels using Simulink.
+            for i = 1:length(obj.Axes)
+                cla(obj.Axes{i});
+                grid(obj.Axes{i}, 'on');
+                if i <= numElements(results(1).yout)
+                    xlabel(obj.Axes{i}, 'Time / (seconds)');
+                    ylabel(obj.Axes{i}, results(1).yout{i}.Name);
+                    % Plot all data on graph.
+                    for j = 1:length(results)
+                        disp(j);
+                        plot(results(j).yout{i}.Values, 'Parent', obj.Axes{i});
+                    end
+                end
+            end    
+            
+            % Call control callback handlers directly.
+            
+            % Reset pointer to arrow:
+            set(load_handle, 'pointer', 'arrow');
             
             % Don't allow another simulation until change is made.
             obj.allowSim(false);
