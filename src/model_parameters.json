@@ -2,6 +2,32 @@
     "description": "This file contains initial workspace variables that are loaded into the simulink model workspace by default. Put the relevant variables in object that has the same name as the simulink model.",
     "workspace": [
         {
+            "name": "carTrailerModel",
+            "m1": 1400,
+            "m2": 600,
+            "u": 0.002,
+            "a1": 5,
+            "a2": 2.5,
+            "g": 9.8,
+            "k": 12150,
+            "F": 5000,
+            "c": 0,
+            "E": 0
+        },
+        {
+            "name": "carTrailerModelDampened",
+            "m1": 1400,
+            "m2": 600,
+            "u": 0.002,
+            "a1": 5,
+            "a2": 2.5,
+            "g": 9.8,
+            "k": 12150,
+            "F": 5000,
+            "c": 0,
+            "E": 0
+        },
+        {
             "name": "speakerModel",
             "freq": 1000,
             "step": true,
@@ -17,9 +43,6 @@
             "Vsin": 1,
             "Fstep": 10,
             "Fsin": 10
-        },
-        {
-            "name": "example"
         }
     ]
 }

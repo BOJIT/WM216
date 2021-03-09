@@ -1,3 +1,8 @@
+% DESCRIPTION:  GUI for manipulating speaker simulink model from Section
+%               2.2. Based on the UIFramework.
+% AUTHOR:       James Bennion-Pedley
+% DATE CREATED: 07.03.21
+
 classdef speakerExplorer < UIFramework
     
     properties
@@ -20,7 +25,7 @@ classdef speakerExplorer < UIFramework
         Trace;
         
         % Application configuration:
-        NumParams = 2; % Note for MATLAB < 2018b this must be less than 1.
+        NumParams = 2; % Note for MATLAB < 2018b this must be less than 2.
         ParamResolution = 10;
         ModelName = 'speakerModel';
         Blacklist = {'name', 'freq', 'step', 'couple'}; % Special fields.
