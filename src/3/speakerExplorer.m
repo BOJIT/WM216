@@ -21,7 +21,7 @@ classdef speakerExplorer < UIFramework
         
         % Application configuration:
         NumParams = 2;
-        ParamResolution = 10;
+        ParamResolution = 5;
         ModelName = 'speakerModel';
         Blacklist = {'name', 'freq', 'step', 'couple'}; % Special fields.
         JSON = 'model_parameters.json';
@@ -166,7 +166,29 @@ classdef speakerExplorer < UIFramework
         
         % Callback for editing control parameters
         function controlEditHandler(obj, ~, ~)
-           disp(obj.Trace);
+            % Get index of correct plot.
+            location = cell(1, length(obj.CurrentParam));
+            for i = 1:length(obj.CurrentParam)
+                % Create sweep struct from parameter ranges.
+                val = obj.Param{i}.Slider.Value;
+                if val == 0
+                    location{i} = 1; % This is why arrays start at zero!!!
+                else
+                    location{i} = ceil(val*obj.ParamResolution);
+                end
+            end
+            
+            % Hide all lines except active one.
+            for i = 1:length(obj.Axes)
+                x_lim = xlim(obj.Axes{i});
+                y_lim = ylim(obj.Axes{i});
+
+                arrayfun(@(x) set(x, 'Visible', 'off'), obj.Trace{i});
+                obj.Trace{i}(location{:}).Visible = 'on';
+                
+                xlim(obj.Axes{i}, x_lim);
+                ylim(obj.Axes{i}, y_lim);
+            end
         end
         
         % Show that simulation is out of date
@@ -174,15 +196,21 @@ classdef speakerExplorer < UIFramework
             if state == true
                 obj.Message.String = 'Results out of date! Re-simulate:';
                 obj.Simulate.Enable = 'on';
+                for i = 1:length(obj.CurrentParam)
+                    obj.Param{i}.disable();
+                end
             else
                 obj.Message.String = '';
-                obj.Simulate.Enable = 'off'; 
+                obj.Simulate.Enable = 'off';
+                for i = 1:length(obj.CurrentParam)
+                    obj.Param{i}.enable();
+                end
             end
         end
         
         % Run simulation and show results!
         function startSim(obj, ~, ~, load_handle)
-            % Set pointer to loading symbol:
+            % Set pointer to loading symbol.
             set(load_handle, 'pointer', 'watch');
             drawnow;
             
@@ -224,13 +252,16 @@ classdef speakerExplorer < UIFramework
                     xlabel(obj.Axes{i}, 'Time / (seconds)');
                     ylabel(obj.Axes{i}, results(1).yout{i}.Name);
                     % Plot all data on graph.
-                    obj.Trace = arrayfun(@(x) plot(x.yout{i}.Values, ...
-                                         'Parent', obj.Axes{i}), results);
+                    obj.Trace{i} = arrayfun(@(x) plot(x.yout{i}.Values, 'b', ...
+                                                 'Parent', obj.Axes{i}), results);
+                                             
                 end
             end    
             
-            % Call control callback handlers directly.
-            obj.controlEditHandler();
+            % If applicable call control callback handlers directly.
+            if ~isempty(obj.CurrentParam)
+                obj.controlEditHandler();
+            end
             
             % Reset pointer to arrow:
             set(load_handle, 'pointer', 'arrow');
