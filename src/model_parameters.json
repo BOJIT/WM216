@@ -3,6 +3,8 @@
     "workspace": [
         {
             "name": "carTrailerModel",
+            "MaxStep": 0.01,
+            "StopTime": 475,
             "m1": 1400,
             "m2": 600,
             "u": 0.002,
@@ -16,6 +18,8 @@
         },
         {
             "name": "carTrailerModelDampened",
+            "MaxStep": 0.01,
+            "StopTime": 475,
             "m1": 1400,
             "m2": 600,
             "u": 0.002,

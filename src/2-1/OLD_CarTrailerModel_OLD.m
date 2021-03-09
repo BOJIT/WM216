@@ -4,22 +4,7 @@
 %Part 2.1 car towing a caravan dynamic model
 %=========================================================================
 
-function [s,t] = CarTrailerModel(m1,m2,u,a1,a2,g,k,c,E,F,T)
-
-%default values 
-% assignin('base', 'm1' ,1400);   
-% assignin('base', 'm2' ,600); 
-% assignin('base', 'u' ,0.002); 
-% assignin('base', 'a1' ,5); 
-% assignin('base', 'a2' ,2.5); 
-% assignin('base', 'g' ,9.8); 
-% assignin('base', 'k' ,3*(1800 + 250*9)); 
-% assignin('base', 'F' ,5000);
-% assignin('base', 'c' ,0); 
-% assignin('base', 'E' ,0); 
-
-
-%% defining variables
+function [s,t] = OLD_CarTrailerModel_OLD(m1,m2,u,a1,a2,g,k,c,E,F,T)
 
 %define all variables to base workspace
 assignin('base', 'm1' ,m1);   
@@ -36,7 +21,7 @@ assignin('base', 'E' ,E);
 
 %% Running Simulation
 %run simulink simulation
-simulation = sim('Car_Trailer_Model_Dampened', 'MaxStep','0.01','StopTime',T);
+simulation = sim('carTrailerModelDampened', 'MaxStep','0.01','StopTime',T);
 
 %% plotting graphs
 %setting vaiables for plotting

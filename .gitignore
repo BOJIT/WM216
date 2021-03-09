@@ -7,3 +7,4 @@ hooks/locals
 *.autosave
 *.asv
 *.slxc
+*.DS_Store

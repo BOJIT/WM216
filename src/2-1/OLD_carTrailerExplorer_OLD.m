@@ -2,31 +2,28 @@
 % AUTHOR:       Ross Geddes, James Bennion-Pedley
 % DATE CREATED: 20/02/2021
 
-classdef carTrailerExplorer < UIFramework
+function OLD_carTrailerExplorer_OLD
+
+%clearing workspace and closing any open figures
+close all
+clear
 
 %% constants
 
-properties
-    Figure
-
-    % setting graphic handles that need to be accessed throughout the script
-    M1h
-    M2h
-    kh
-    ch
-    panel_4
-    % setting dampening constants to default zero to disable dampening
-    E = 0;
-    c = 0;
-    
-end
+% setting graphic handles that need to be accessed throughout the script
+global M1h
+global M2h
+global kh
+global ch
+global panel_4
+%setting dampening constants to default zero to disable dampening
+E = 0;
+c = 0;
 
 %% Building GUI layout
 
-methods
-
 %setting up figure and axis location and properties
-obj.Figure = figure('Name', 'Car and Trailer Model', 'menubar', 'none', ...
+figure_hadl = figure('Name', 'Car and Trailer Model', 'menubar', 'none', ...
                                                      'CloseRequestFcn',@Exit);
 axes1_hadl = axes(figure_hadl,'Units','normalized','Position',[0.05 0.6 0.9 0.36]);
 axes2_hadl = axes(figure_hadl,'Units','normalized','Position',[0.08 0.09 0.9 0.4],'Visible','off');
@@ -47,12 +44,7 @@ constantBoxes() %function to set all input boxes of figure
 loadImg() %function to load image
 menuBar() % function to build menu bar
 
-end
-
 %% callback functions
-
-% Private Methods:
-methods (Access = private)
 
     function simulate(~,~)%retrieves variables from gui and sends them to function that runs simulation
         %performs error handling, ensures inputs to simulation are numeric and defined.
@@ -252,6 +244,4 @@ methods (Access = private)
         uimenu(file_menu_hadl, 'Label','Infomation','Accelerator','i', 'Callback', @Info); %third element
         
     end
-end
-
 end
