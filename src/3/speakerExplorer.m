@@ -17,6 +17,7 @@ classdef speakerExplorer < UIFramework
         Message;
         Simulate;
         Axes = {};
+        Trace;
         
         % Application configuration:
         NumParams = 2;
@@ -56,7 +57,8 @@ classdef speakerExplorer < UIFramework
             % Custom model parameters/controls
             for i = 1:obj.NumParams
                 obj.Param{i} = obj.parameter(control_panel, {'null', ...
-                                ['Parameter ', num2str(i)]}, 0, 0, false);
+                                             ['Parameter ', num2str(i)]}, ...
+                                             0, 0, false, @obj.controlEditHandler);
                 obj.Param{i}.disable();
             end
 
@@ -82,7 +84,8 @@ classdef speakerExplorer < UIFramework
             
             % Frequency parameter/control
             obj.Frequency = obj.parameter(config_panel, 'Frequency', ...
-                                          obj.Workspace.freq, obj.Workspace.freq, true);
+                                          obj.Workspace.freq, obj.Workspace.freq, ...
+                                          true, @obj.configEditHandler);
             obj.Frequency.disable();
             
             %---------------- Create model results panel -----------------%
@@ -160,6 +163,13 @@ classdef speakerExplorer < UIFramework
             obj.allowSim(true);
         end
         
+        % Callback for editing control parameters
+        function controlEditHandler(obj, src, evt)
+           disp(obj);
+           disp(src);
+           disp(evt);
+        end
+        
         % Show that simulation is out of date
         function allowSim(obj, state)
             if state == true
@@ -212,10 +222,8 @@ classdef speakerExplorer < UIFramework
                     xlabel(obj.Axes{i}, 'Time / (seconds)');
                     ylabel(obj.Axes{i}, results(1).yout{i}.Name);
                     % Plot all data on graph.
-                    for j = 1:length(results)
-                        disp(j);
-                        plot(results(j).yout{i}.Values, 'Parent', obj.Axes{i});
-                    end
+                    obj.Trace = arrayfun(@(x) plot(x.yout{i}.Values, ...
+                                         'Parent', obj.Axes{i}), results);
                 end
             end    
             
