@@ -24,6 +24,7 @@ classdef speakerExplorer < UIFramework
         ParamResolution = 10;
         ModelName = 'speakerModel';
         Blacklist = {'name', 'freq', 'step', 'couple'}; % Special fields.
+        JSON = 'model_parameters.json';
         
         % Be mindful setting these parameters. The max number of parallel
         % simulations initiated is set by ParamResolution^NumParams.
@@ -48,7 +49,7 @@ classdef speakerExplorer < UIFramework
             parameter_panel.Title = 'Parameters';
             
             % Add table with responsive resizing:
-            obj.Table = obj.loadWorkspace(parameter_panel, 'model_parameters.json');
+            obj.Table = obj.loadWorkspace(parameter_panel);
             
             %---------------- Create model control panel -----------------%
             control_panel = obj.panel(fig, 'vertical', true, [0, 0, 0.35, 0.3]);
@@ -164,10 +165,8 @@ classdef speakerExplorer < UIFramework
         end
         
         % Callback for editing control parameters
-        function controlEditHandler(obj, src, evt)
-           disp(obj);
-           disp(src);
-           disp(evt);
+        function controlEditHandler(obj, ~, ~)
+           disp(obj.Trace);
         end
         
         % Show that simulation is out of date
@@ -187,6 +186,9 @@ classdef speakerExplorer < UIFramework
             set(load_handle, 'pointer', 'watch');
             drawnow;
             
+            % Don't allow another simulation until change is made.
+            obj.allowSim(false);
+            
             % Update workspace struct with current variables.
             for row = obj.Table.Data'
                 obj.Workspace.(row{1}) = row{2};
@@ -199,7 +201,7 @@ classdef speakerExplorer < UIFramework
             
             % Request headless simulation (single or parallel).
             if isempty(obj.CurrentParam)
-                results = SimFramework(false, obj.ModelName, obj.Workspace);
+                results = SimFramework(obj.JSON, false, obj.ModelName, obj.Workspace);
             else
                 sweep = struct;
                 for i = 1:length(obj.CurrentParam)
@@ -211,7 +213,7 @@ classdef speakerExplorer < UIFramework
                                              base_val + range/2, ...
                                              obj.ParamResolution);                          
                 end
-                results = SimFramework(false, obj.ModelName, obj.Workspace, sweep);
+                results = SimFramework(obj.JSON, false, obj.ModelName, obj.Workspace, sweep);
             end
             
             % Clear previous graph content and set labels using Simulink.
@@ -228,20 +230,18 @@ classdef speakerExplorer < UIFramework
             end    
             
             % Call control callback handlers directly.
+            obj.controlEditHandler();
             
             % Reset pointer to arrow:
             set(load_handle, 'pointer', 'arrow');
-            
-            % Don't allow another simulation until change is made.
-            obj.allowSim(false);
         end
         
         % Read default values to initialise table
-        function handle = loadWorkspace(obj, parent, path)
+        function handle = loadWorkspace(obj, parent)
             active_ws = [];
             
             % Get environment variables from JSON
-            json = fileread(path);
+            json = fileread(obj.JSON);
             param = jsondecode(json);
             for ws = param.workspace'
                 if strcmp(ws{:}.name, obj.ModelName)

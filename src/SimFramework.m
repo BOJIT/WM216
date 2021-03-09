@@ -8,13 +8,11 @@ Note for this framework to operate correctly the following code should be
 added to the 'InitFcn' callback of any Simulink files:
 
 ```
-if ~exist('self', 'var')
-   SimFramework(true, 'MODEL NAME');
-end
+    SimFramework('JSON_PATH');
 ```
 %}
 
-function sim_out = SimFramework(self, name, param, sweep)
+function sim_out = SimFramework(path, self, name, param, sweep)
     % SIMINITIALISE Function for setting environment variables
     % for Simulink projects.
     % This function is used for both initialising environment
@@ -22,25 +20,28 @@ function sim_out = SimFramework(self, name, param, sweep)
     % Simulink models.
     % This framework allows full encapsulation of the Simulink workspace.
     %
+    % PATH  path to JSON file containing model parameters.
+    %
     % SELF  if true, default environment variables are passed
     %       to the calling model. If false, batch simulate.
     %
-    % NAME  name of workspace to load. These can be any name,
-    %       and multiple simulink files can share environments,
-    %       but using the simulink file name is recommended.
+    % NAME  name of base model to load if running programatically.
     %
     % PARAM workspace struct with environment variables.
     % SWEEP struct of value arrays to create parallel simulation pool.
     
     active_ws = [];
     
+    % Default 'self' = true;
+    if nargin < 2
+        self = true; 
+    end
+    
     if self
-        if nargin < 2
-            error('Name required for initialisation!');
-        end
+        name = gcs;
         
         % Get environment variables from JSON
-        json = fileread('model_parameters.json');
+        json = fileread(path);
         param = jsondecode(json);
         for ws = param.workspace'
             if strcmp(ws{:}.name, name)
@@ -52,9 +53,11 @@ function sim_out = SimFramework(self, name, param, sweep)
         if isempty(active_ws)
             error('No environment variables found!');
         else
+            % GCS is always parent of callback caller.
+            sim_ws = get_param(gcs, 'ModelWorkspace');
             fn = fieldnames(active_ws);
             for field = fn'
-                assignin('caller', field{:}, active_ws.(field{:}));
+                sim_ws.assignin(field{:}, active_ws.(field{:}));
             end
         end
         
@@ -62,19 +65,19 @@ function sim_out = SimFramework(self, name, param, sweep)
         sim_out = [];
         
     else
-        if nargin < 3
+        if nargin < 4
             error('Parameters required for initialisation!');
         end
-        
-        % Add 'self' tag - this stops this file being called back!
-        param.self = true;
         
         % Create base simulation input.
         sim_base = Simulink.SimulationInput(name);
         sim_base = sim_struct(param, sim_base);
+        
+        % Suppress initFcn being called recursively.
+        sim_base = sim_base.setModelParameter('InitFcn', '');
 
         % Create one or many simulation objects.
-        if nargin >= 4
+        if nargin >= 5
             % Struct recursion to preallocate simulation array.
             sim_vars = struct_combinations(sweep);
             sim_in = repmat(sim_base, size(sim_vars));
@@ -126,7 +129,8 @@ end
 function sim_in = sim_struct(sim_struct, sim_in)
     fn = fieldnames(sim_struct);
     for field = fn'
-        sim_in = sim_in.setVariable(field{:}, sim_struct.(field{:}));
+        sim_in = sim_in.setVariable(field{:}, sim_struct.(field{:}), ...
+                                            'Workspace', sim_in.ModelName);
     end
 end
 
