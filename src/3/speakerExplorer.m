@@ -20,7 +20,7 @@ classdef speakerExplorer < UIFramework
         Trace;
         
         % Application configuration:
-        NumParams = 2;
+        NumParams = 2; % Note for MATLAB < 2018b this must be less than 1.
         ParamResolution = 10;
         ModelName = 'speakerModel';
         Blacklist = {'name', 'freq', 'step', 'couple'}; % Special fields.
@@ -36,10 +36,6 @@ classdef speakerExplorer < UIFramework
         
         % Initialise GUI
         function obj = speakerExplorer()
-            
-            % TEMP REMOVE LATER!!!
-            close all; clc;
-            
             % General figure/container structure
             fig = obj.figure();
             fig.Name = 'Speaker Explorer';

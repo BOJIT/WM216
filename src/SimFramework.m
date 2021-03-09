@@ -89,7 +89,8 @@ function sim_out = SimFramework(path, self, name, param, sweep)
         else
             sim_out = sim(sim_base);
         end
-        
+       
+        save_system;
     end
 end
 
