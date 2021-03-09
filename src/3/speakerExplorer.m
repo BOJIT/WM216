@@ -21,7 +21,7 @@ classdef speakerExplorer < UIFramework
         
         % Application configuration:
         NumParams = 2;
-        ParamResolution = 5;
+        ParamResolution = 10;
         ModelName = 'speakerModel';
         Blacklist = {'name', 'freq', 'step', 'couple'}; % Special fields.
         JSON = 'model_parameters.json';
@@ -249,6 +249,9 @@ classdef speakerExplorer < UIFramework
                 cla(obj.Axes{i});
                 grid(obj.Axes{i}, 'on');
                 if i <= numElements(results(1).yout)
+                    % Reset axes scaling and add labels.
+                    xlim(obj.Axes{i}, 'auto');
+                    ylim(obj.Axes{i}, 'auto');
                     xlabel(obj.Axes{i}, 'Time / (seconds)');
                     ylabel(obj.Axes{i}, results(1).yout{i}.Name);
                     % Plot all data on graph.

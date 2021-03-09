@@ -94,8 +94,12 @@ classdef UIFramework < handle
             % Create slider callback with/without hook if required.
             if nargin >= 6
                 handle.Slider.Callback = {@UIFramework.parameterSliderHandler, handle, hook};
+                addlistener(handle.Slider, 'Value', 'PostSet', @(src, evt) ...
+                    UIFramework.parameterPreviewHandler(src, evt, handle, hook));
             else
                 handle.Slider.Callback = {@UIFramework.parameterSliderHandler, handle};
+                addlistener(handle.Slider, 'Value', 'PostSet', @(src, evt) ...
+                    UIFramework.parameterPreviewHandler(src, evt, handle));
             end
             
             % Add function pointers for enabling/disabling the parameter.
@@ -212,6 +216,22 @@ classdef UIFramework < handle
             % If hook is given, call hook function.
             if nargin >= 4
                 hook(src, evt);
+            end
+        end
+        
+        % Handler to get live-updating slider value.
+        function parameterPreviewHandler(~, evt, handle, hook)
+            if isprop(evt, 'AffectedObject')
+                new_src = evt.AffectedObject;
+                % Edge case - stops initialisation code executing callback.
+                if new_src.Value == 0.5
+                    return;
+                end
+                if nargin >= 4
+                    UIFramework.parameterSliderHandler(new_src, [], handle, hook);
+                else
+                    UIFramework.parameterSliderHandler(new_src, [], handle);
+                end
             end
         end
         
