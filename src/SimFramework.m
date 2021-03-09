@@ -89,8 +89,12 @@ function sim_out = SimFramework(path, self, name, param, sweep)
         else
             sim_out = sim(sim_base);
         end
-       
-        save_system;
+        
+        if verLessThan('matlab', '9.8')
+            % Older simulink API causes file to be modified.
+            save_system;
+        end
+
     end
 end
 

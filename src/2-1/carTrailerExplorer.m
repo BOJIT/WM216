@@ -4,10 +4,10 @@
 
 classdef carTrailerExplorer < UIFramework
 
-%% constants
-
 properties
-    Figure
+    % UI Object Handles
+    Figure;
+    Image = struct;
 
     % setting graphic handles that need to be accessed throughout the script
     M1h
@@ -19,33 +19,84 @@ properties
     E = 0;
     c = 0;
     
+    TimeHandle;
+    
 end
 
-%% Building GUI layout
-
 methods
+    
+    % Initialise GUI
+    function obj = carTrailerExplorer()
+        
+        %---------------------- Top Level Elements -----------------------%
 
-%setting up figure and axis location and properties
-obj.Figure = figure('Name', 'Car and Trailer Model', 'menubar', 'none', ...
-                                                     'CloseRequestFcn',@Exit);
-axes1_hadl = axes(figure_hadl,'Units','normalized','Position',[0.05 0.6 0.9 0.36]);
-axes2_hadl = axes(figure_hadl,'Units','normalized','Position',[0.08 0.09 0.9 0.4],'Visible','off');
+        obj.Figure = obj.figure(false);
+        obj.Figure.Name = 'Car and Trailer Model';
+        obj.Figure.MenuBar = 'none';
+        
+        % Load both images and only display one.
+        obj.Image.Frame = axes(obj.Figure, 'Position', [0.05 0.6 0.9 0.36]);
+        obj.Image.CTS = imread('img_cts.jpg');
+        obj.Image.CTSD = imread('img_ctsd.jpg');
+        imshow(obj.Image.CTS, 'Parent', obj.Image.Frame);
+        
+        % @TODO Put in tab group.
+        axes2_hadl = axes(obj.Figure, 'Position', [0.08 0.09 0.9 0.4], 'Visible', 'off');
 
-%setting heading for GUI
-uicontrol(figure_hadl,'FontSize', 13.5,'Style', 'Text', 'Unit','Normalized', 'Position', [0.35 0.95 0.3 0.05],'String' ,'Car Trailer Model')
+        
+        %--------------------- Create User Controls ----------------------%
+        
+        uicontrol(obj.Figure, 'Style', 'pushbutton', 'tooltip', 'This runs the simulation', ...
+                  'Position', [0.04 0.53 0.2 0.05], 'String' , 'Run', 'callback', @obj.simulate);
+        uicontrol(obj.Figure,'Style', 'pushbutton', 'tooltip','This sets the environment constants', ...
+                  'Position', [0.28 0.53 0.2 0.05], 'String' ,'Set Constants', 'callback', @obj.ConstantSet);
+        
+        uicontrol(obj.Figure, 'Style', 'checkbox','tooltip','This adds a dampener to the system', ...
+                  'Position', [0.52 0.53 0.2 0.05], 'String', 'Add Dampener', 'callback', @obj.AddDampener);
+        
+        % @TODO LOAD SPEED FROM CONFIG!!!
+        obj.TimeHandle = uicontrol(obj.Figure, 'Style', 'edit', 'FontSize', 10, ...
+                'String', 475,'tooltip','This is the maximum time of the simulation', 'Units','normalized', 'Position', [0.76 0.53 0.2 0.05],'callback',@ValueSet);
 
-% defining user inputs for GUI
-uicontrol(figure_hadl,'Style', 'pushbutton', 'Unit','Normalized','tooltip','This runs the simulation', 'Position', [0.04 0.53 0.2 0.05],'String' ,'Run','callback',@simulate);
-uicontrol(figure_hadl,'Style', 'pushbutton', 'Unit','Normalized','tooltip','This sets the environment constants', 'Position', [0.28 0.53 0.2 0.05],'String' ,'Set Constants','callback',@ConstantSet);
-uicontrol(figure_hadl,'Style', 'checkbox', 'Unit','Normalized','tooltip','This adds a dampener to the system', 'Position', [0.52 0.53 0.2 0.05],'String' ,'Add Dampener','callback',@AddDampener);
-Th = uicontrol(figure_hadl,'FontSize', 10,'Style','edit','String', 475,'tooltip','This is the maximum time of the simulation', 'Units','normalized', 'Position', [0.76 0.53 0.2 0.05],'callback',@ValueSet);
+        uicontrol(obj.Figure, 'Style', 'Text', 'FontSize', 10, 'Position', [0.69 0.48 0.3 0.05], 'String', 'max time (s)');
 
-uicontrol(figure_hadl,'FontSize', 10,'Style', 'Text', 'Unit','Normalized', 'Position', [0.69 0.48 0.3 0.05],'String' ,'max time (s)')
+        % GUI Constructor Functions
+%         obj.constantBoxes() %function to set all input boxes of figure
+  
+        %------------------------ Create Menu Bar ------------------------%
+        
+        menu = uimenu(obj.Figure, 'Label', 'File');
+        uimenu(menu, 'Label', 'Open Simulink Model', 'Accelerator', ...
+                                          'o', 'Callback', @obj.openSim);
+        uimenu(menu, 'Label', 'Exit', 'Accelerator', 'x', ...
+                        'Callback', @(~, ~) close(obj.Figure));
+        uimenu(menu, 'Label', 'Information', 'Accelerator', 'i', ...
+                                           'Callback', @obj.showInfo);
 
-%calling constructor functions
-constantBoxes() %function to set all input boxes of figure
-loadImg() %function to load image
-menuBar() % function to build menu bar
+        %---------------------- Create Annotations -----------------------%
+        
+        % GUI Heading.
+        uicontrol(obj.Figure, 'Style', 'Text', 'FontSize', 13.5, ...
+                  'Position', [0.35 0.95 0.3 0.05], 'String', 'Car Trailer Model');
+                                 
+        % Add arrow overlay.
+        annotation(obj.Figure, 'arrow', [0.03 0.2], [0.94 0.94]);
+        annotation(obj.Figure, 'arrow', [0.72 0.87], [0.89 0.89]);
+        annotation(obj.Figure, 'arrow', [0.16 0.03], [0.61 0.61]);
+        
+        % Model labels.
+        uicontrol(obj.Figure, 'Style', 'Text', 'FontSize', 10, ...
+                  'tooltip','This is the rolling resitance and air resitance of the car', ...
+                  'Position', [0.01 0.87 0.18 0.05], 'String', 'Ff1,F1(v)');
+        uicontrol(obj.Figure, 'Style', 'Text', 'FontSize', 10, ...
+                  'tooltip','This is the rolling resitance and air resitance of the trailer', ...
+                  'Position', [0.5 0.89 0.2 0.05], 'String', 'Ff2,F2(v)');
+        uicontrol(obj.Figure, 'Style', 'Text', 'FontSize', 10, ...
+                  'tooltip', 'This is the driving force of the car', ...
+                  'Position', [0.165 0.6 0.1 0.03],'String', 'F');
+        
+        %-----------------------------------------------------------------%
+    end
 
 end
 
@@ -108,17 +159,17 @@ methods (Access = private)
         
     end
 
-    function AddDampener(obj,~)%shows dampening possibility of model
+    
+    function AddDampener(obj, src, ~)
         
-        if obj.Value %seeing if checkbox is checked
-            data = imread('img_ctsd.jpg'); %importing new image
-            imshow(data, 'Parent',axes1_hadl) %plotting image
-            set(panel_4,'Visible','on')%dampening constant input made visible
-            E = 1;%enabling dampening in simulation
+        if src.Value %seeing if checkbox is checked
+            imshow(obj.Image.CTSD, 'Parent', obj.Image.Frame);
+            set(obj.panel_4,'Visible','on')%dampening constant input made visible
+            E = 1;% enabling dampening in simulation
         else
-            loadImg()%loading stock image
+            imshow(obj.Image.CTS, 'Parent', obj.Image.Frame);
             E = 0; %disabling dampening in simulation
-            set(panel_4,'Visible','off')%removing dampening constant input
+            set(obj.panel_4,'Visible','off')%removing dampening constant input
         end
         
     end
@@ -149,32 +200,22 @@ methods (Access = private)
         
     end
 
-    function disable() % disables all buttons whilst operations are underway.
-        
-        buttons = findobj(figure_hadl, 'Style', 'pushbutton');  %finding all buttons
-        set(buttons, 'enable','off') %disabling all buttons
-        edits = findobj(figure_hadl, 'Style', 'edit');  %finding all buttons
-        set(edits, 'enable','off') %disabling all buttons
-        
+    % Disable all GUI Buttons
+    function enable(obj, state)
+        % Find all buttons and edit boxes under parent figure.
+        buttons = findobj(obj.Figure, 'Style', 'pushbutton');
+        set(buttons, 'enable', state);
+        edits = findobj(obj.Figure, 'Style', 'edit');
+        set(edits, 'enable', state);
     end
 
-    function enable()%enables all buttons after opperation is complete
-        
-        buttons = findobj(figure_hadl, 'Style', 'pushbutton'); % finding all buttons
-        set(buttons, 'enable','on') % enabling all buttons
-        edits = findobj(figure_hadl, 'Style', 'edit');  %finding all buttons
-        set(edits, 'enable','on')
-        
+     % Display contents of README file in a text box.
+    function showInfo(~, ~, ~)
+        message = fileread('README.txt');
+        msgbox(message,'Infomation');
     end
 
-    function Info(~,~)%loads info to be shown when menu item is selected
-        
-        message =  fileread('README.txt');%loads information
-        msgbox(message,'Infomation')%shows information
-        
-    end
-
-    function Open(~,~)%opens Simulink file so user can examine it
+    function openSim(~,~)%opens Simulink file so user can examine it
         
         errordlg('this needs to be programmed still.')
         filename = uigetfile('.slx');%asking user for file in directory
@@ -190,20 +231,11 @@ methods (Access = private)
         end
         
     end
-
-    function Exit(~,~)%handles gui closing
-        
-        %ensuring user wants to exit
-        selection = questdlg('Are You Sure?', 'Close Request','No','Yes','No');
-        switch selection
-            case 'Yes'
-                delete(gcf)%closing gui
-            case'No'
-                return;
-        end
+    
+    % Create constant box
+    function handle = createField(obj, name, position, tooltip)
         
     end
-
 
 %% constructor functions
 
@@ -224,33 +256,6 @@ methods (Access = private)
         panel_4 = uipanel(figure_hadl, 'Position', [0.43 0.81 0.2 0.05],'Visible','off');
         ch = uicontrol(panel_4,'FontSize', 10,'Style','edit','String', 1000,'Value',1000,'tooltip','This is the dampening constant', 'Units','normalized', 'Position', [0.35 0.05 0.6 0.9],'callback',@ValueSet);
         uicontrol(panel_4,'FontSize', 10,'Style', 'Text', 'Unit','Normalized', 'Position', [0.01 0.05 0.3 0.9],'String' ,'c = ','tooltip','This is the dampening constant')
-        
-        %defining model labels
-        uicontrol(figure_hadl,'FontSize', 10,'Style', 'Text', 'Unit','Normalized', 'tooltip','This is the rolling resitance and air resitance of the car','Position', [0.01 0.87 0.18 0.05],'String' ,'Ff1,F1(v)')
-        uicontrol(figure_hadl,'FontSize', 10,'Style', 'Text', 'Unit','Normalized','tooltip','This is the rolling resitance and air resitance of the trailer', 'Position', [0.5 0.89 0.2 0.05],'String' ,'Ff2,F2(v)')
-        uicontrol(figure_hadl,'FontSize', 10,'Style', 'Text', 'Unit','Normalized','tooltip','This is the driving force of the car', 'Position', [0.165 0.6 0.1 0.03],'String' ,'F')
-        
-        %adding arrows to image
-        annotation('arrow', [0.03 0.2], [0.94 0.94])
-        annotation('arrow', [0.72 0.87], [0.89 0.89])
-        annotation('arrow', [0.16 0.03], [0.61 0.61])
-        
-    end
-
-    function loadImg()%loads image of system
-        
-        data = imread('img_cts.jpg');%loading data
-        imshow(data, 'Parent',axes1_hadl)%showing data
-        
-    end
-
-    function menuBar() % function to build menu bar
-        
-        file_menu_hadl = uimenu(figure_hadl, 'Label', 'File');%creating file menu
-        uimenu(file_menu_hadl, 'Label','Open Simulink Model','Accelerator','o', 'Callback', @Open); %first element
-        uimenu(file_menu_hadl, 'Label','Exit','Accelerator','x', 'Callback', @Exit); %second element
-        uimenu(file_menu_hadl, 'Label','Infomation','Accelerator','i', 'Callback', @Info); %third element
-        
     end
 end
 

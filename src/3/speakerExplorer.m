@@ -42,7 +42,7 @@ classdef speakerExplorer < UIFramework
         % Initialise GUI
         function obj = speakerExplorer()
             % General figure/container structure
-            fig = obj.figure();
+            fig = obj.figure(false);
             fig.Name = 'Speaker Explorer';
 
             %--------------- Create model parameter panel ----------------%
