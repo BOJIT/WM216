@@ -117,6 +117,14 @@ classdef UIFramework < handle
             handle = uitable(varargin{:});
             UIFramework.resizeHandler(handle);
         end
+        
+        % Create tab - wrapper to handle tiling engine.
+        function handle = tab(varargin)
+            handle = uitab(varargin{:});
+            % Add event listener to panel object for child positioning.
+            handle.UserData.Stack = 'normal';
+            addlistener(handle, 'ChildAdded', @UIFramework.arrangeHandler);
+        end
     end
     
     % UIFramework static methods that are not exposed.

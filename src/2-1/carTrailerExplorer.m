@@ -7,7 +7,12 @@ classdef carTrailerExplorer < UIFramework
 properties
     % UI Object Handles
     Figure;
-    Image = struct;
+    Image;
+    TabGroup;
+    Axes;
+    
+    % Workspace Parameters
+    Workspace;
 
     % setting graphic handles that need to be accessed throughout the script
     M1h
@@ -21,6 +26,12 @@ properties
     
     TimeHandle;
     
+    % User Configuration
+    ModelName = 'carTrailerModelDampened';
+    JSON = 'model_parameters.json';
+    AxesTitles =  {'Displacement',    'Velocity',       'Acceleration'        };
+    AxesYLabels = {'displacment [m]', 'Velocity [m/s]', 'Acceleration [m/s^2]'};
+    
 end
 
 methods
@@ -28,11 +39,16 @@ methods
     % Initialise GUI
     function obj = carTrailerExplorer()
         
+        %TEMP!!!!
+        close all; clc;
+        
         %---------------------- Top Level Elements -----------------------%
 
         obj.Figure = obj.figure(false);
         obj.Figure.Name = 'Car and Trailer Model';
         obj.Figure.MenuBar = 'none';
+        
+%         obj.
         
         % Load both images and only display one.
         obj.Image.Frame = axes(obj.Figure, 'Position', [0.05 0.6 0.9 0.36]);
@@ -40,28 +56,39 @@ methods
         obj.Image.CTSD = imread('img_ctsd.jpg');
         imshow(obj.Image.CTS, 'Parent', obj.Image.Frame);
         
-        % @TODO Put in tab group.
-        axes2_hadl = axes(obj.Figure, 'Position', [0.08 0.09 0.9 0.4], 'Visible', 'off');
+        % Tab group for graphs and controls.
+        obj.TabGroup = uitabgroup(obj.Figure, 'Position', [0.01 0.01 0.98 0.58]);
+        
+        %---------------------- Create Control Tab -----------------------%
+        
+        ctrl_tab = obj.tab(obj.TabGroup, 'Title', 'Controls');
+        
+        uicontrol(ctrl_tab, 'Style', 'pushbutton', 'tooltip', 'This runs the simulation', ...
+                  'Position', [0.04 0.8 0.2 0.1], 'String' , 'Run', 'callback', @obj.simulate);
+        uicontrol(ctrl_tab,'Style', 'pushbutton', 'tooltip','This sets the environment constants', ...
+                  'Position', [0.28 0.8 0.2 0.1], 'String' ,'Set Constants', 'callback', @obj.ConstantSet);
 
-        
-        %--------------------- Create User Controls ----------------------%
-        
-        uicontrol(obj.Figure, 'Style', 'pushbutton', 'tooltip', 'This runs the simulation', ...
-                  'Position', [0.04 0.53 0.2 0.05], 'String' , 'Run', 'callback', @obj.simulate);
-        uicontrol(obj.Figure,'Style', 'pushbutton', 'tooltip','This sets the environment constants', ...
-                  'Position', [0.28 0.53 0.2 0.05], 'String' ,'Set Constants', 'callback', @obj.ConstantSet);
-        
-        uicontrol(obj.Figure, 'Style', 'checkbox','tooltip','This adds a dampener to the system', ...
-                  'Position', [0.52 0.53 0.2 0.05], 'String', 'Add Dampener', 'callback', @obj.AddDampener);
+        uicontrol(ctrl_tab, 'Style', 'checkbox','tooltip','This adds a dampener to the system', ...
+                  'Position', [0.52 0.8 0.2 0.1], 'String', 'Add Dampener', 'callback', @obj.AddDampener);
         
         % @TODO LOAD SPEED FROM CONFIG!!!
-        obj.TimeHandle = uicontrol(obj.Figure, 'Style', 'edit', 'FontSize', 10, ...
-                'String', 475,'tooltip','This is the maximum time of the simulation', 'Units','normalized', 'Position', [0.76 0.53 0.2 0.05],'callback',@ValueSet);
+        obj.TimeHandle = uicontrol(ctrl_tab, 'Style', 'edit', 'FontSize', 10, ...
+                'String', 475, 'tooltip','This is the maximum time of the simulation', 'Units','normalized', 'Position', [0.76 0.8 0.2 0.1],'callback',@ValueSet);
 
-        uicontrol(obj.Figure, 'Style', 'Text', 'FontSize', 10, 'Position', [0.69 0.48 0.3 0.05], 'String', 'max time (s)');
+        uicontrol(ctrl_tab, 'Style', 'Text', 'FontSize', 10, 'Position', [0.69 0.7 0.3 0.1], 'String', 'max time (s)');
 
         % GUI Constructor Functions
 %         obj.constantBoxes() %function to set all input boxes of figure
+
+
+        %------------------------ Create Axes Tab ------------------------%
+        
+        for i = 1:length(obj.AxesTitles)
+            tab = obj.tab(obj.TabGroup, 'Title', obj.AxesTitles{i});
+            obj.Axes{i} = axes(tab); % Ignore MATLAB warning here.
+            xlabel(obj.Axes{i}, 'Time [sec]');
+            ylabel(obj.Axes{i}, obj.AxesYLabels{i});
+        end
   
         %------------------------ Create Menu Bar ------------------------%
         
@@ -80,7 +107,7 @@ methods
                   'Position', [0.35 0.95 0.3 0.05], 'String', 'Car Trailer Model');
                                  
         % Add arrow overlay.
-        annotation(obj.Figure, 'arrow', [0.03 0.2], [0.94 0.94]);
+        annotation(obj.Figure, 'arrow', [0.03 0.20], [0.94 0.94]);
         annotation(obj.Figure, 'arrow', [0.72 0.87], [0.89 0.89]);
         annotation(obj.Figure, 'arrow', [0.16 0.03], [0.61 0.61]);
         
@@ -212,12 +239,11 @@ methods (Access = private)
      % Display contents of README file in a text box.
     function showInfo(~, ~, ~)
         message = fileread('README.txt');
-        msgbox(message,'Infomation');
+        msgbox(message,'Information');
     end
 
-    function openSim(~,~)%opens Simulink file so user can examine it
+    function openSim(~, ~, ~)%opens Simulink file so user can examine it
         
-        errordlg('this needs to be programmed still.')
         filename = uigetfile('.slx');%asking user for file in directory
         %making sure a file was selected
         
@@ -226,8 +252,10 @@ methods (Access = private)
         end
         
         if ~contains(filename, '.slx') %making sure file is the correct type
-            errordlg('File must be of type ......')
+            errordlg('File must be of type ......');
             return;
+        else
+            open_system(filename);
         end
         
     end
@@ -236,6 +264,8 @@ methods (Access = private)
     function handle = createField(obj, name, position, tooltip)
         
     end
+    
+    % Load JSON Variables into workspace.
 
 %% constructor functions
 
