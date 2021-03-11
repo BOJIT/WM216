@@ -11,20 +11,8 @@ properties
     TabGroup;
     Axes;
     
-    % Workspace Parameters
+    % Workspace Environment Parameters (From JSON)
     Workspace;
-
-    % setting graphic handles that need to be accessed throughout the script
-    M1h
-    M2h
-    kh
-    ch
-    panel_4
-    % setting dampening constants to default zero to disable dampening
-    E = 0;
-    c = 0;
-    
-    TimeHandle;
     
     % User Configuration
     ModelName = 'carTrailerModelDampened';
@@ -48,7 +36,7 @@ methods
         obj.Figure.Name = 'Car and Trailer Model';
         obj.Figure.MenuBar = 'none';
         
-%         obj.
+        obj.Workspace = obj.loadJSON();
         
         % Load both images and only display one.
         obj.Image.Frame = axes(obj.Figure, 'Position', [0.05 0.6 0.9 0.36]);
@@ -59,47 +47,6 @@ methods
         % Tab group for graphs and controls.
         obj.TabGroup = uitabgroup(obj.Figure, 'Position', [0.01 0.01 0.98 0.58]);
         
-        %---------------------- Create Control Tab -----------------------%
-        
-        ctrl_tab = obj.tab(obj.TabGroup, 'Title', 'Controls');
-        
-        uicontrol(ctrl_tab, 'Style', 'pushbutton', 'tooltip', 'This runs the simulation', ...
-                  'Position', [0.04 0.8 0.2 0.1], 'String' , 'Run', 'callback', @obj.simulate);
-        uicontrol(ctrl_tab,'Style', 'pushbutton', 'tooltip','This sets the environment constants', ...
-                  'Position', [0.28 0.8 0.2 0.1], 'String' ,'Set Constants', 'callback', @obj.ConstantSet);
-
-        uicontrol(ctrl_tab, 'Style', 'checkbox','tooltip','This adds a dampener to the system', ...
-                  'Position', [0.52 0.8 0.2 0.1], 'String', 'Add Dampener', 'callback', @obj.AddDampener);
-        
-        % @TODO LOAD SPEED FROM CONFIG!!!
-        obj.TimeHandle = uicontrol(ctrl_tab, 'Style', 'edit', 'FontSize', 10, ...
-                'String', 475, 'tooltip','This is the maximum time of the simulation', 'Units','normalized', 'Position', [0.76 0.8 0.2 0.1],'callback',@ValueSet);
-
-        uicontrol(ctrl_tab, 'Style', 'Text', 'FontSize', 10, 'Position', [0.69 0.7 0.3 0.1], 'String', 'max time (s)');
-
-        % GUI Constructor Functions
-%         obj.constantBoxes() %function to set all input boxes of figure
-
-
-        %------------------------ Create Axes Tab ------------------------%
-        
-        for i = 1:length(obj.AxesTitles)
-            tab = obj.tab(obj.TabGroup, 'Title', obj.AxesTitles{i});
-            obj.Axes{i} = axes(tab); % Ignore MATLAB warning here.
-            xlabel(obj.Axes{i}, 'Time [sec]');
-            ylabel(obj.Axes{i}, obj.AxesYLabels{i});
-        end
-  
-        %------------------------ Create Menu Bar ------------------------%
-        
-        menu = uimenu(obj.Figure, 'Label', 'File');
-        uimenu(menu, 'Label', 'Open Simulink Model', 'Accelerator', ...
-                                          'o', 'Callback', @obj.openSim);
-        uimenu(menu, 'Label', 'Exit', 'Accelerator', 'x', ...
-                        'Callback', @(~, ~) close(obj.Figure));
-        uimenu(menu, 'Label', 'Information', 'Accelerator', 'i', ...
-                                           'Callback', @obj.showInfo);
-
         %---------------------- Create Annotations -----------------------%
         
         % GUI Heading.
@@ -122,6 +69,53 @@ methods
                   'tooltip', 'This is the driving force of the car', ...
                   'Position', [0.165 0.6 0.1 0.03],'String', 'F');
         
+        % Model parameters.
+        obj.createField('m1', [0.18 0.72 0.2 0.05], 'M1 = ', 'This is the mass of the car in Kg');
+        obj.createField('m2', [0.67 0.77 0.2 0.05], 'M2 = ', 'This is the mass of the trailer in kg');
+        obj.createField('k', [0.47 0.61 0.2 0.05], 'k = ', 'This is the spring constant');
+        ch = obj.createField('c', [0.43 0.81 0.2 0.05], 'c = ', 'This is the dampening constant');
+        ch.Panel.Visible = 'off'; % Hide 
+        
+        %---------------------- Create Control Tab -----------------------%
+        
+        ctrl_tab = obj.tab(obj.TabGroup, 'Title', 'Controls');
+        
+        uicontrol(ctrl_tab, 'Style', 'pushbutton', 'tooltip', 'This runs the simulation', ...
+                  'Position', [0.04 0.8 0.2 0.1], 'String' , 'Run', 'callback', @obj.simulate);
+        uicontrol(ctrl_tab,'Style', 'pushbutton', 'tooltip','This sets the environment constants', ...
+                  'Position', [0.28 0.8 0.2 0.1], 'String' ,'Set Constants', 'callback', @obj.setConstants);
+
+        uicontrol(ctrl_tab, 'Style', 'checkbox','tooltip','This adds a dampener to the system', ...
+                  'Position', [0.52 0.8 0.2 0.1], 'String', 'Add Dampener', 'callback', {@obj.setDamping, ch});
+        
+        th = uicontrol(ctrl_tab, 'Style', 'edit', 'FontSize', 10, ...
+                       'String', obj.Workspace.StopTime, 'tooltip', ...
+                       'This is the maximum time of the simulation', ...
+                       'Position', [0.76 0.8 0.2 0.1], 'callback', @obj.setField);
+        th.UserData.Key = 'th';
+
+        uicontrol(ctrl_tab, 'Style', 'Text', 'FontSize', 10, 'Position', ...
+                                [0.69 0.7 0.3 0.1], 'String', 'Stop Time (s)');
+
+        %------------------------ Create Axes Tabs -----------------------%
+        
+        for i = 1:length(obj.AxesTitles)
+            tab = obj.tab(obj.TabGroup, 'Title', obj.AxesTitles{i});
+            obj.Axes{i} = axes(tab); % Ignore MATLAB warning here.
+            xlabel(obj.Axes{i}, 'Time [sec]');
+            ylabel(obj.Axes{i}, obj.AxesYLabels{i});
+        end
+  
+        %------------------------ Create Menu Bar ------------------------%
+        
+        menu = uimenu(obj.Figure, 'Label', 'File');
+        uimenu(menu, 'Label', 'Open Simulink Model', 'Accelerator', ...
+                                          'o', 'Callback', @obj.openSim);
+        uimenu(menu, 'Label', 'Exit', 'Accelerator', 'x', ...
+                        'Callback', @(~, ~) close(obj.Figure));
+        uimenu(menu, 'Label', 'Information', 'Accelerator', 'i', ...
+                                           'Callback', @obj.showInfo);
+
         %-----------------------------------------------------------------%
     end
 
@@ -186,49 +180,56 @@ methods (Access = private)
         
     end
 
-    
-    function AddDampener(obj, src, ~)
+    % Update workspace variable with input conditioning.
+    function setField(obj, src, ~)
         
-        if src.Value %seeing if checkbox is checked
-            imshow(obj.Image.CTSD, 'Parent', obj.Image.Frame);
-            set(obj.panel_4,'Visible','on')%dampening constant input made visible
-            E = 1;% enabling dampening in simulation
-        else
-            imshow(obj.Image.CTS, 'Parent', obj.Image.Frame);
-            E = 0; %disabling dampening in simulation
-            set(obj.panel_4,'Visible','off')%removing dampening constant input
-        end
-        
-    end
-
-    function ValueSet(obj,~)%sets handle value to handle string, performs error handling
-        
-        if isnan(str2double(obj.String)) %checking if input is a string
+        val = str2double(src.String);
+        if isnan(val) % Checking if input is numeric.
             errordlg('This field must be a number.')
             return;
         end
         
-        if str2double(obj.String)<0 %checking if input is positive
+        if val < 0 % Checking if input is positive.
             errordlg('This field must be a positive number.')
             return;
         end
         
-        obj.Value = str2double(obj.String);%setting value to string
+        % If valid, assign to workspace.
+        obj.Workspace.(src.UserData.Key) = val;
     end
 
-    function ConstantSet(~,~)%sets environment constants
+    % Prompt for model constants.
+    function setConstants(obj, ~ , ~)
+        prompt = {'coefficient of friction, u is:', 'gravity g is:', ...
+                  'driving force F is:','friction constant a1 is:', ...
+                  'friction constant a2 is:'};
+        dlgtitle = 'Constants';
+        dims = [1 35]; % Default dimensions
         
-        prompt = {'coeficient of friction, u is:','gravity g is:','driving force F is:','friction constant a1 is:','friction constant a2 is:'};
-        dlgtitle = 'constants';
-        dims = [1 35];%default dimensions
-        definput = {'0.002','9.81','5000','5','2.5'};%default values
-        answer = inputdlg(prompt,dlgtitle,dims,definput);
-        setappdata(figure_hadl,'constants', answer)%setting constant data to be used later in gui
+        keys = {'u', 'g', 'F', 'a1', 'a2'}; % Pull default values from Workspace.
         
+        definput = cellfun(@(x) num2str(obj.Workspace.(x)), keys, 'UniformOutput', false);
+        answer = inputdlg(prompt, dlgtitle, dims, definput)';
+        
+        for i = 1:length(keys)
+            obj.Workspace.(keys{i}) = str2double(answer{i});
+        end
+    end
+    
+    % Enable/Disable damping
+    function setDamping(obj, src, ~, ch)
+        if src.Value % Check state of checkbox.
+            imshow(obj.Image.CTSD, 'Parent', obj.Image.Frame);
+            ch.Panel.Visible = 'on'; % Show C user field.
+        else
+            imshow(obj.Image.CTS, 'Parent', obj.Image.Frame);
+            ch.Panel.Visible = 'off'; % Hide C user field.
+        end
+        obj.Workspace.E = src.Value; % Update workspace parameter.  
     end
 
     % Disable all GUI Buttons
-    function enable(obj, state)
+    function enableUI(obj, state)
         % Find all buttons and edit boxes under parent figure.
         buttons = findobj(obj.Figure, 'Style', 'pushbutton');
         set(buttons, 'enable', state);
@@ -236,22 +237,21 @@ methods (Access = private)
         set(edits, 'enable', state);
     end
 
-     % Display contents of README file in a text box.
+     % Display contents of README file in a text box
     function showInfo(~, ~, ~)
         message = fileread('README.txt');
-        msgbox(message,'Information');
+        msgbox(message, 'Information');
     end
 
-    function openSim(~, ~, ~)%opens Simulink file so user can examine it
-        
-        filename = uigetfile('.slx');%asking user for file in directory
-        %making sure a file was selected
-        
+    % Open Simulink file so user can examine it
+    function openSim(~, ~, ~)
+        filename = uigetfile('.slx');
+
         if  filename == 0
-            return; %if no file is selected then exiting function
+            return;         % if no file is selected then exit function
         end
         
-        if ~contains(filename, '.slx') %making sure file is the correct type
+        if ~contains(filename, '.slx')                % check file type
             errordlg('File must be of type ......');
             return;
         else
@@ -260,33 +260,34 @@ methods (Access = private)
         
     end
     
-    % Create constant box
-    function handle = createField(obj, name, position, tooltip)
-        
+    % Create an editable field with workspace key
+    function field = createField(obj, key, position, string, tooltip)
+        field.Panel = obj.panel(obj.Figure, 'normal', true, position);
+        field.Control = uicontrol(field.Panel, 'Style', 'edit', 'FontSize', 10, ...
+              'String', obj.Workspace.(key), 'tooltip', tooltip, 'Position', ...
+                                     [0.35 0.05 0.6 0.9], 'callback', @obj.setField);
+        field.Control.UserData.Key = key;
+        field.Label = uicontrol(field.Panel, 'Style', 'Text', 'FontSize', 10, ...
+                                'Position', [0.01 0.05 0.3 0.9],'String' ,string);
     end
     
-    % Load JSON Variables into workspace.
-
-%% constructor functions
-
-    function constantBoxes()%defining user input elements that appear on image
+    % Load JSON Variables into workspace
+    function workspace = loadJSON(obj)
+        workspace = [];
         
-        panel_1 = uipanel(figure_hadl, 'Position', [0.18 0.72 0.2 0.05]);
-        M1h = uicontrol(panel_1,'FontSize', 10,'Style','edit','String', 1400,'Value',1400,'tooltip','This is the mass of the car in Kg', 'Units','normalized', 'Position', [0.35 0.05 0.6 0.9],'callback',@ValueSet);
-        uicontrol(panel_1,'FontSize', 10,'Style', 'Text', 'Unit','Normalized', 'Position', [0.01 0.05 0.3 0.9],'String' ,'M1 = ')
+        json = fileread(obj.JSON);
+        param = jsondecode(json);
+        for ws = param.workspace'
+            if strcmp(ws{:}.name, obj.ModelName)
+                workspace = ws{:};
+            end
+        end
         
-        panel_2 = uipanel(figure_hadl, 'Position', [0.67 0.77 0.2 0.05]);
-        M2h = uicontrol(panel_2,'FontSize', 10,'Style','edit','String', 600,'Value',600,'tooltip','This is the mass of the trailer in kg', 'Units','normalized', 'Position', [0.35 0.05 0.6 0.9],'callback',@ValueSet);
-        uicontrol(panel_2,'FontSize', 10,'Style', 'Text', 'Unit','Normalized', 'Position', [0.01 0.05 0.3 0.9],'String' ,'M2 = ','tooltip','This is the mass of the trailer in kg')
-        
-        panel_3 = uipanel(figure_hadl, 'Position', [0.47 0.61 0.2 0.05]);
-        kh = uicontrol(panel_3,'FontSize', 10,'Style','edit','String', 12150,'Value',3*(1800 + 250*9),'tooltip','This is the spring constant', 'Units','normalized', 'Position', [0.35 0.05 0.6 0.9],'callback',@ValueSet);
-        uicontrol(panel_3,'FontSize', 10,'Style', 'Text', 'Unit','Normalized', 'Position', [0.01 0.05 0.3 0.9],'String' ,'k = ','tooltip','This is the spring constant')
-        
-        panel_4 = uipanel(figure_hadl, 'Position', [0.43 0.81 0.2 0.05],'Visible','off');
-        ch = uicontrol(panel_4,'FontSize', 10,'Style','edit','String', 1000,'Value',1000,'tooltip','This is the dampening constant', 'Units','normalized', 'Position', [0.35 0.05 0.6 0.9],'callback',@ValueSet);
-        uicontrol(panel_4,'FontSize', 10,'Style', 'Text', 'Unit','Normalized', 'Position', [0.01 0.05 0.3 0.9],'String' ,'c = ','tooltip','This is the dampening constant')
+        if isempty(workspace)
+            error('Workspace not found!');
+        end
     end
+
 end
 
 end
