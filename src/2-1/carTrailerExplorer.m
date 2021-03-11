@@ -92,7 +92,7 @@ methods
                        'String', obj.Workspace.StopTime, 'tooltip', ...
                        'This is the maximum time of the simulation', ...
                        'Position', [0.76 0.8 0.2 0.1], 'callback', @obj.setField);
-        th.UserData.Key = 'th';
+        th.UserData.Key = 'StopTime';
 
         uicontrol(ctrl_tab, 'Style', 'Text', 'FontSize', 10, 'Position', ...
                                 [0.69 0.7 0.3 0.1], 'String', 'Stop Time (s)');
@@ -126,58 +126,46 @@ end
 % Private Methods:
 methods (Access = private)
 
-    function simulate(~,~)%retrieves variables from gui and sends them to function that runs simulation
-        %performs error handling, ensures inputs to simulation are numeric and defined.
+    % Run simulation using SimFramework and populate graphs
+    function simulate(obj, ~, ~)
+        obj.enableUI('off'); % Disables all user inputs while simulating.
+  
+        % @ Ross: with new framework this check doesn't really make
+%         if isempty(m)%ensuring constants are set
+%             errordlg('please set constants.')%warning user
+%             uiwait%pausing operation
+%             enable()%re-enabling user input
+%             ConstantSet()%opening constant setting menu
+%             return;
+%         end
+
+        % @ Ross: this check is redundant, as fields are checked when
+        % entered.
+%         if sum(isnan([m1,m2,u,a1,a2,g,k,c,E,F]))%ensuring all inputs are numbers
+%             errordlg('please make sure constants are numbers.')
+%             enable()%re-enabling user input
+%             return;
+%         end
         
-        disable()% disables all user inputs while simulating
-        
-        m = getappdata(figure_hadl,'constants');%retrieving constant data
-        
-        
-        if isempty(m)%ensuring constants are set
-            errordlg('please set constants.')%warning user
-            uiwait%pausing operation
-            enable()%re-enabling user input
-            ConstantSet()%opening constant setting menu
-            return;
-        end
-        %defining inputs to simulation function
-        u = str2double(m{1,1});
-        g = str2double(m{2,1});
-        F = str2double(m{3,1});
-        a1 = str2double(m{4,1});
-        a2 = str2double(m{5,1});
-        m1 = M1h.Value;
-        m2 = M2h.Value;
-        k = kh.Value;
-        c = ch.Value;
-        T = Th.String;
-        
-        if k < 4 %ensuring simulation can solve problem
-            errordlg('constant k is too small, oscillations are to large to calculate. Increase k to above 4.')
-            enable()%re-enabling user input
+        if obj.Workspace.k < 4 % Ensure simulation can solve problem
+            errordlg('constant k is too small, oscillations are to large to calculate. Increase k to above 4.');
+            obj.enableUI('on'); % Re-enables user inputs.
             return;
         end
         
-        if sum(isnan([m1,m2,u,a1,a2,g,k,c,E,F]))%ensuring all inputs are numbers
-            errordlg('please make sure constants are numbers.')
-            enable()%re-enabling user input
-            return;
+        % Get simulation data.
+        results = SimFramework(obj.JSON, false, obj.ModelName, obj.Workspace);
+        
+        % Add simulation data to plots.
+        for i = 1:length(obj.Axes)
+            plot(results.yout{i}.Values, 'Parent', obj.Axes{i});
+            legend(obj.Axes{i}, 'Car', 'Trailer');
         end
+
+        obj.enableUI('on'); % Re-enables user inputs.
         
-        %running function that handles simulation
-        [s,t] = OLD_CarTrailerModel_OLD(m1,m2,u,a1,a2,g,k,c,E,F,T);
-        
-        %plotting velocity output from simulation
-        plot(axes2_hadl, t, s(:,1), 'r')
-        hold(axes2_hadl, 'on')
-        plot(axes2_hadl, t,s(:,2), 'b')
-        title(axes2_hadl,'Velocity')
-        legend(axes2_hadl,'Car', 'Trailer')
-        xlabel(axes2_hadl,'Time [sec]')
-        ylabel(axes2_hadl,'Velocity [m/s]')
-        enable()%re-enabling user input
-        
+        % Auto-switch to first graph.
+        obj.TabGroup.SelectedTab = obj.Axes{1}.Parent;
     end
 
     % Update workspace variable with input conditioning.
@@ -212,7 +200,9 @@ methods (Access = private)
         answer = inputdlg(prompt, dlgtitle, dims, definput)';
         
         for i = 1:length(keys)
-            obj.Workspace.(keys{i}) = str2double(answer{i});
+            if ~isnan(str2double(answer{i}))
+                obj.Workspace.(keys{i}) = str2double(answer{i});
+            end
         end
     end
     
