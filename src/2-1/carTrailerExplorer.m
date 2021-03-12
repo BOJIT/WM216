@@ -60,10 +60,10 @@ methods
         
         % Model labels.
         uicontrol(obj.Figure, 'Style', 'Text', 'FontSize', 10, ...
-                  'tooltip','This is the rolling resitance and air resitance of the car', ...
+                  'tooltip','This is the rolling resistance and air resistance of the car', ...
                   'Position', [0.01 0.87 0.18 0.05], 'String', 'Ff1,F1(v)');
         uicontrol(obj.Figure, 'Style', 'Text', 'FontSize', 10, ...
-                  'tooltip','This is the rolling resitance and air resitance of the trailer', ...
+                  'tooltip','This is the rolling resistance and air resistance of the trailer', ...
                   'Position', [0.5 0.89 0.2 0.05], 'String', 'Ff2,F2(v)');
         uicontrol(obj.Figure, 'Style', 'Text', 'FontSize', 10, ...
                   'tooltip', 'This is the driving force of the car', ...
@@ -74,7 +74,7 @@ methods
         obj.createField('m2', [0.67 0.77 0.2 0.05], 'M2 = ', 'This is the mass of the trailer in kg');
         obj.createField('k', [0.47 0.61 0.2 0.05], 'k = ', 'This is the spring constant');
         ch = obj.createField('c', [0.43 0.81 0.2 0.05], 'c = ', 'This is the dampening constant');
-        ch.Panel.Visible = 'off'; % Hide 
+        ch.Panel.Visible = 'off'; % Hide panel.
         
         %---------------------- Create Control Tab -----------------------%
         
@@ -129,23 +129,6 @@ methods (Access = private)
     % Run simulation using SimFramework and populate graphs
     function simulate(obj, ~, ~)
         obj.enableUI('off'); % Disables all user inputs while simulating.
-  
-        % @ Ross: with new framework this check doesn't really make
-%         if isempty(m)%ensuring constants are set
-%             errordlg('please set constants.')%warning user
-%             uiwait%pausing operation
-%             enable()%re-enabling user input
-%             ConstantSet()%opening constant setting menu
-%             return;
-%         end
-
-        % @ Ross: this check is redundant, as fields are checked when
-        % entered.
-%         if sum(isnan([m1,m2,u,a1,a2,g,k,c,E,F]))%ensuring all inputs are numbers
-%             errordlg('please make sure constants are numbers.')
-%             enable()%re-enabling user input
-%             return;
-%         end
         
         if obj.Workspace.k < 4 % Ensure simulation can solve problem
             errordlg('constant k is too small, oscillations are to large to calculate. Increase k to above 4.');
@@ -242,7 +225,7 @@ methods (Access = private)
         end
         
         if ~contains(filename, '.slx')                % check file type
-            errordlg('File must be of type ......');
+            errordlg('File must be of type .slx');
             return;
         else
             open_system(filename);
