@@ -13,7 +13,7 @@
 
 function section1
     % variable definitions
-    global variableData peakData
+    global peakData
     frequencyLow = 3000;  % min frequency in Hz
     frequencyHigh = 6000;  % max frequency in Hz
     input1VLow = 100; % input 1 min voltage in mV
@@ -66,7 +66,7 @@ function section1
     % slider value field to show current slider value
     frequencySliderVal = uicontrol(configTab,'Style','edit','String',...
         string(frequencyLow),'Position',[240 380 50 30],'Enable','on',...
-        'callback',@sliderUpdate);
+        'callback',@sliderUpdate, 'TooltipString', 'Frequency of input signals');
     frequencySlider.UserData.sibling = frequencySliderVal;  % set siblings
     frequencySliderVal.UserData.sibling = frequencySlider;
     
@@ -81,7 +81,7 @@ function section1
     % slider value field to show current slider value
     v1SliderVal = uicontrol(configTab,'Style','edit','String',...
         string(input1VLow),'Position',[240 320 50 30],'Enable','on',...
-        'callback',@sliderUpdate);
+        'callback',@sliderUpdate, 'TooltipString', 'Input 1 Amplitude (mV)');
     
      v1Slider.UserData.sibling = v1SliderVal;  % set siblings
     v1SliderVal.UserData.sibling = v1Slider;
@@ -97,7 +97,7 @@ function section1
     % slider value field to show current slider value
     v2SliderVal = uicontrol(configTab,'Style','edit','String',...
         string(input2VLow),'Position',[240 260 50 30],'Enable','on',...
-        'callback',@sliderUpdate);
+        'callback',@sliderUpdate, 'TooltipString', 'Input 2 Amplitude (mV)');
     
     v2Slider.UserData.sibling = v2SliderVal;  % set siblings
     v2SliderVal.UserData.sibling = v2Slider;
@@ -108,7 +108,8 @@ function section1
     
     % sampling duration edit field
     lengthField = uicontrol(configTab,'Style','edit','String','1',...
-        'Position',[20 200 200 30],'Enable','on','callback',@IntVerify);
+        'Position',[20 200 200 30],'Enable','on','callback',@IntVerify,...
+        'TooltipString', 'Length of Acquisition (S)');
     
     lengthLabel = uicontrol(configTab,'Style','text','Position', ...
         [12 230 150 20],'String','Acquisition Length (s)',...
@@ -153,18 +154,21 @@ function section1
         [442 410 150 20],'String','Input Channel (0-31)','FontWeight',...
         'bold');
     inputChannel = uicontrol(configTab,'Style','edit','String','0',...
-        'Position',[450 380 200 30],'callback',@IntVerify);
+        'Position',[450 380 200 30],'callback',@IntVerify, 'TooltipString',...
+        'Input channel number for input signal.');
     output1ChannelLabel = uicontrol(configTab,'Style','text','Position',...
         [442 350 150 20],'String','Output 1 Channel (0-31)',...
         'FontWeight','bold');
     output1Channel = uicontrol(configTab,'Style','edit','String','0',...
-        'Position',[450 320 200 30],'callback',@IntVerify);
+        'Position',[450 320 200 30],'callback',@IntVerify, 'TooltipString',...
+        'Output channel number for output 1 signal.');
+    
     output2ChannelLabel = uicontrol(configTab,'Style','text','Position',...
         [442 290 150 20],'String','Output 2 Channel (0-31)',...
         'FontWeight','bold');
     output2Channel = uicontrol(configTab,'Style','edit','String','1',...
-        'Position',[450 260 200 30],'callback',@IntVerify);
-    
+        'Position',[450 260 200 30],'callback',@IntVerify, 'TooltipString',...
+        'Output channel number for output 2 signal.');
     
     
     %% Create Data acquisition tab GUI
@@ -263,42 +267,52 @@ function section1
             v1 = v1Slider.Value/1000; % Input 1 Voltage/peak ampltiude in V
             v2 = v2Slider.Value/1000; % Input 2 Voltage/peak ampltiude in V
             sampleLength = str2num(lengthField.String);  % acquition length in s
+            
+            % NI Elvis communication configuration
+            try  
+                dq = daq('ni'); % creates an NI data acquisition session
+                dq.Rate = 1000; % set the sampling rate (scans/second)
+                % set total duration of the acquisition based on user input
+                dq.DurationInSeconds =  sampleLength; 
 
-            dq = daq('ni'); % creates an NI data acquisition session
-            dq.Rate = 1000; % set the sampling rate (scans/second)
-            % set total duration of the acquisition based on user input
-            dq.DurationInSeconds =  sampleLength; 
+                % create session input/output channels
+                input1 = addinput(dq,'Dev1', opampInputChannel, 'Voltage');
+                % sine output 1 and 2
+                output1=addoutput(dq,"cDAQ1Mod2", signal1OutputChannel,"Voltage"); 
+                output =addoutput(dq,"cDAQ1Mod2", signal2OutputChannel,"Voltage");
 
-            % create session input/output channels
-            input1 = addinput(dq,'Dev1', opampInputChannel, 'Voltage');
-            % sine output 1 and 2
-            output1=addoutput(dq,"cDAQ1Mod2", signal1OutputChannel,"Voltage"); 
-            output =addoutput(dq,"cDAQ1Mod2", signal2OutputChannel,"Voltage");
+                % create sine signals using user inputted freq and peak amplitudes
+                outputSignal1 = v1*sin(linspace(0,2*freq*pi,sampleLength)');
+                outputSignal2 = v2*sin(linspace(0,2*freq*pi,sampleLength)');
+                outputSignal = [outputSignal1 outputSignal2];  % format waveforms
+                write(dq, outputSignal)  % set output channels to produce waveforms 
+                
+                 % input (opamp output) channel configuration
+                input1.TerminalConfig = 'SingleEnded';
+                input1.Range = [-5 5]; % set V range of analogue input channel
+                input1.Name = 'AudioMixerOutput'; % Label the analogue channel
+                % create session listener
+                output = @(src, event) continuous_data(event.TimeStamps,...
+                    event.Data, src.Rate);
+                hl = addlistener(s, 'DataAvailable', output);
+            
+            % catch statement to show user a message if DAQ comm doesn't work
+            catch
+                warndlg("Error communicating with NI Elvis, please check your connections.")
+                return
+            end
 
-            % create sine signals using user inputted freq and peak amplitudes
-            outputSignal1 = v1*sin(linspace(0,2*freq*pi,sampleLength)');
-            outputSignal2 = v2*sin(linspace(0,2*freq*pi,sampleLength)');
-            outputSignal = [outputSignal1 outputSignal2];  % format waveforms
-            write(dq, outputSignal)  % set output channels to produce waveforms 
 
-            % input (opamp output) channel configuration
-            input1.TerminalConfig = 'SingleEnded';
-            input1.Range = [-5 5]; % set V range of analogue input channel
-            input1.Name = 'AudioMixerOutput'; % Label the analogue channel
-            % create session listener
-            output = @(src, event) continuous_data(event.TimeStamps,...
-                event.Data, src.Rate);
-            hl = addlistener(s, 'DataAvailable', output);
-
+            %% 3. Data acquisition loop
             % initialise data acquisition
             startBackground(s); % Start the acquisition in background operation
-            % 3. 
+
             if dq.IsDone  % once acquisition has finished for specified length
                 tabGroup.SelectedTab = resultsTab; % move current tab to result
                 stop(dq);
                 dq.IsContinuous = false;
                 delete(hl);
-                RunFFT()  % run final fft function to plot and show peaks
+                RunFFT(a5, true)  % run final fft function to plot and show peaks
                 % call final result function for fft
             end
         else
@@ -315,18 +329,7 @@ function section1
         reading = [reading;data];
         timeaxis = [timeaxis;time];
         
-        % compute fft
-        fs = rate;  % Sampling frequency of the session
-        T = 1/fs;  % Sampling time
-        L = length(data);  % Length of the audio signal
-        t = (0:L-1)*T;  % Time vector
-        nfft = 2^nextpow2(L);  % Next power of 2 from length of data
-        d = data;  % Remove the zero value of the fft
-        d = d-mean(d);
-
-        fft_d = fft(d,nfft)/L;  % Perform the fft
-        P = 2*abs(fft_d(1:nfft/2+1));  % Amplitude
-        f = fs/2*linspace(0,1,nfft/2+1);  % Frequency domain 
+        RunFFT(a4, false);  % plot fft on axis 4
         
         % create sine waves to represent opamp inputs
         freq = frequencySlider.Value;  % Input 1 and 2 frequency in Hz
@@ -337,20 +340,18 @@ function section1
         plot(a1, time, s1); % plot input 1 signal
         plot(a2, time, s2); % plot input 2 signal
         plot(a3, time, data); % plot opamp output data
-        plot(a4, f, P); % plot continuous fft 
         
         % save data to global variabls
         Time = timeaxis;
         Data = AudioReading;
     end
 
-    %% 5. Function on data acquisition finish
-    function RunFFT()
-        % using final data, an FFT is run, peak amplitudes extracted, and
-        % populated in a table.
+    %% 5. Function to perform and plot an FFT
+    function RunFFT(axisToPlot, peakTable)
+        % using data given, an FFT is run and plotted with limits
         
-        tData = Time;  % time vector
-        sData = Data;  % amplitude vector
+        tData = Time;  % time vector (from global variables)
+        sData = Data;  % amplitude vector (from global variables)
 
         n = length(tData);  % number of sample points
         dt = tData(2,1)- tData(1,1);  % time delta between samples
@@ -368,25 +369,31 @@ function section1
         relAmp = fliplr(abs(relAmp(1:length(relAmp)/2+1)));
         freq = fliplr(abs(freq(1:length(freq)/2+1)));
 
-        plot(a5, freq,relAmp);  % plot fft
+        plot(axisToPlot, freq,relAmp);  % plot fft
         % if Nyquist freq > 100, set max to 100 so is 
         % easier to read on graph
         if fN > 100  
             fN = 100;
         end
         % set x and y limits for fft plot
-        a5.XLim =[0 fN];
-        a5.YLim=[0 1];
-
-        % find peaks using number of peaks requested
-        [sortedAmp, Inds] = sort(relAmp(:),'descend');
-        peakInds = Inds(1:10);  % shows first 10 peak amplitudes
-        peakFreqs = freq(peakInds);
-        peakRelAmps = relAmp(peakInds);
-        % vector of peak frequencies and associated relative amplitudes
-        peakData = [peakFreqs, peakRelAmps];
-        frequencyTable.Data = peakData;  % shows peak values in table
+        axisToPlot.XLim =[0 fN];
+        axisToPlot.YLim=[0 1];
+        
+        % is a peak frequency table wanted? FOr the final tab, populated
+        % frequencyTable.
+        if isequal(peakTable, true)
+            % find peaks using number of peaks requested
+            [sortedAmp, Inds] = sort(relAmp(:),'descend');
+            peakInds = Inds(1:10);  % shows first 10 peak amplitudes
+            peakFreqs = freq(peakInds);
+            peakRelAmps = relAmp(peakInds);
+            plot(peakFreqs, peakRelAmps, 'r*');  % plot markers for these points
+            % vector of peak frequencies and associated relative amplitudes
+            peakData = [peakFreqs, peakRelAmps];
+            frequencyTable.Data = peakData;  % shows peak values in table
+        end
     end
+
 
     %% exit callback. Called by CloseRequestFcn
     function exitCallback(~,~)
