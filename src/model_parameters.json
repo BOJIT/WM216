@@ -17,21 +17,6 @@
             "E": 0
         },
         {
-            "name": "carTrailerModelDampened",
-            "MaxStep": 0.01,
-            "StopTime": 475,
-            "m1": 1400,
-            "m2": 600,
-            "u": 0.002,
-            "a1": 5,
-            "a2": 2.5,
-            "g": 9.8,
-            "k": 12150,
-            "F": 5000,
-            "c": 0,
-            "E": 0
-        },
-        {
             "name": "speakerModel",
             "freq": 1000,
             "step": true,
@@ -43,10 +28,14 @@
             "K": 500,
             "D": 0.5,
             "Vb": 0.1,
+            "VstepOnTime": 1,
+            "VstepOffTime": 100,
             "Vstep": 1,
             "Vsin": 1,
             "Fstep": 10,
-            "Fsin": 10
+            "FstepOnTime": 1,
+            "FstepOffTime": 5,
+            "Fsin": 1
         }
     ]
 }
