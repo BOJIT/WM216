@@ -188,6 +188,7 @@ function section1
     a2.YLabel.String = "Amplitude";
     grid on;  % turn on grid
     hold on;
+    zoom on;
     
     %output axis
     a3 = axes(acquisitionTab, 'Position',[.05 .2 .42 .3]);
@@ -196,6 +197,7 @@ function section1
     a3.YLabel.String = "Amplitude";
     grid on;  % turn on grid
     hold on;
+    zoom on;
     
     % FFT axis
     a4 = axes(acquisitionTab, 'Position',[.55 .2 .42 .3]);
@@ -204,6 +206,7 @@ function section1
     a4.YLabel.String = "Relative Amplitude";
     grid on;  % turn on grid
     hold on;
+    zoom on;
     
     % create uibutton to start data capture
     runBtn = uicontrol(acquisitionTab,'Style','pushbutton','Units', ...
@@ -220,6 +223,7 @@ function section1
     a5.YLabel.String = "Relative Amplitude";
     grid on;  % turn on grid
     hold on;
+    zoom on;
    
 
     % create UITable for FFT frequencies
@@ -251,6 +255,8 @@ function section1
     
     %% 2. Data Acquisition Initialisation
     function runCallback(~, ~)
+        global Time
+        global Data
         inChannel = inputChannel.String;
         out1Channel = output1Channel.String;
         out2Channel = output2Channel.String;
@@ -302,9 +308,13 @@ function section1
                 return
             end
 
-
             %% 3. Data acquisition loop
-            % initialise data acquisition
+            % clear any existing values from previous run if repeated
+            clear reading;
+            clear timeaxis;
+            clear Time;
+            clear Data;
+            
             startBackground(s); % Start the acquisition in background operation
 
             if dq.IsDone  % once acquisition has finished for specified length
@@ -329,6 +339,10 @@ function section1
         reading = [reading;data];
         timeaxis = [timeaxis;time];
         
+        % save data to global variables
+        Time = timeaxis;
+        Data = AudioReading;
+        
         RunFFT(a4, false);  % plot fft on axis 4
         
         % create sine waves to represent opamp inputs
@@ -340,21 +354,18 @@ function section1
         plot(a1, time, s1); % plot input 1 signal
         plot(a2, time, s2); % plot input 2 signal
         plot(a3, time, data); % plot opamp output data
-        
-        % save data to global variabls
-        Time = timeaxis;
-        Data = AudioReading;
     end
 
     %% 5. Function to perform and plot an FFT
     function RunFFT(axisToPlot, peakTable)
-        % using data given, an FFT is run and plotted with limits
+        global Time
+        global Data
         
         tData = Time;  % time vector (from global variables)
         sData = Data;  % amplitude vector (from global variables)
 
         n = length(tData);  % number of sample points
-        dt = tData(2,1)- tData(1,1);  % time delta between samples
+        dt = tData(1,2)- tData(1,1);  % time delta between samples
         fs = 1/dt;  % sample frequency
         fN = fs / 2.0;  % nyquist frequency for XLim
         freq = zeros(n,1);  % frequency range
@@ -370,16 +381,16 @@ function section1
         freq = fliplr(abs(freq(1:length(freq)/2+1)));
 
         plot(axisToPlot, freq,relAmp);  % plot fft
-        % if Nyquist freq > 100, set max to 100 so is 
+        % if Nyquist freq > max freq, set max to max freq so is 
         % easier to read on graph
-        if fN > 100  
-            fN = 100;
+        if fN > frequencyHigh  
+            fN = frequencyHigh;
         end
         % set x and y limits for fft plot
         axisToPlot.XLim =[0 fN];
         axisToPlot.YLim=[0 1];
         
-        % is a peak frequency table wanted? FOr the final tab, populated
+        % is a peak frequency table wanted? For the final tab, populated
         % frequencyTable.
         if isequal(peakTable, true)
             % find peaks using number of peaks requested
