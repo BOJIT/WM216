@@ -180,6 +180,7 @@ function section1
     a1.YLabel.String = "Amplitude";
     grid on;  % turn on grid
     hold on;
+    zoom on;
     
     %input 2 axis
     a2 = axes(acquisitionTab, 'Position',[.55 .65 .42 .3]);
