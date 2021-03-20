@@ -8,6 +8,5 @@ This repo will auto-convert newer simulink files back to the r2018b format.
 
 Clone using the 'Project from Git' tool directly in Simulink.
 
-Fran was here.
-
-Guy was here 🛰️
+To Run project files, first double-click the WM216.prj file. This will
+set up all the system paths and ensure everyhing runs correctly.

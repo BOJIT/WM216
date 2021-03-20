@@ -2,7 +2,7 @@
     "description": "This file contains initial workspace variables that are loaded into the simulink model workspace by default. Put the relevant variables in object that has the same name as the simulink model.",
     "workspace": [
         {
-            "name": "carTrailerModel",
+            "name": "carTrailerModelDampened",
             "MaxStep": 0.01,
             "StopTime": 475,
             "m1": 1400,
@@ -37,5 +37,35 @@
             "FstepOffTime": 5,
             "Fsin": 1
         }
-    ]
+    ],
+    "metadata": {
+        "description": "metadata is optional and not used by the simulation.",
+        "units": {
+            "MaxStep": "s",
+            "StopTime": "s",
+            "m1": "kg",
+            "m2": "kg",
+            "u": "s/m",
+            "a1": "N/(m/s)^0.5",
+            "a2": "N/(m/s)^0.5",
+            "g": "m/s^2",
+            "k": "N/m",
+            "F": "N",
+            "freq": "Hz",
+            "R": "Ω",
+            "L": "H",
+            "m": "kg",
+            "K": "N/m",
+            "D": "Ns/m",
+            "Vb": "V",
+            "VstepOnTime": "s",
+            "VstepOffTime": "s",
+            "Vstep": "V",
+            "Vsin": "s",
+            "Fstep": "N",
+            "FstepOnTime": "s",
+            "FstepOffTime": "s",
+            "Fsin": "N"
+        }
+    }
 }
