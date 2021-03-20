@@ -26,10 +26,6 @@ methods
     
     % Initialise GUI
     function obj = carTrailerExplorer()
-        
-        %TEMP!!!!
-        close all; clc;
-        
         %---------------------- Top Level Elements -----------------------%
 
         obj.Figure = obj.figure(false);

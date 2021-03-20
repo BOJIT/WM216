@@ -3,6 +3,12 @@
 % AUTHOR:       James Bennion-Pedley
 % DATE CREATED: 07.03.21
 
+% IMPORTANT NOTE!
+% If running this on a PC with the parallel computing toolbox installed, it
+% is advisable to turn it off while running this script. True parallel
+% processing only results in a speed increase for longer simulations than
+% the ones in this submission.
+
 classdef speakerExplorer < UIFramework
     
     properties
@@ -46,14 +52,14 @@ classdef speakerExplorer < UIFramework
             fig.Name = 'Speaker Explorer';
 
             %--------------- Create model parameter panel ----------------%
-            parameter_panel = obj.panel(fig, 'vertical', true, [0, 0.5, 0.35, 0.5]);
+            parameter_panel = obj.panel(fig, 'vertical', true, [0, 0.5, 0.4, 0.5]);
             parameter_panel.Title = 'Parameters';
             
             % Add table with responsive resizing:
             obj.Table = obj.loadWorkspace(parameter_panel);
             
             %---------------- Create model control panel -----------------%
-            control_panel = obj.panel(fig, 'vertical', true, [0, 0, 0.35, 0.3]);
+            control_panel = obj.panel(fig, 'vertical', true, [0, 0, 0.4, 0.3]);
             control_panel.Title = 'Control';
             
             % Custom model parameters/controls
@@ -69,7 +75,7 @@ classdef speakerExplorer < UIFramework
                                               'Callback', {@obj.startSim, fig});
             
             %----------------- Create model config panel -----------------%
-            config_panel = obj.panel(fig, 'vertical', true, [0, 0.3, 0.35, 0.2]);
+            config_panel = obj.panel(fig, 'vertical', true, [0, 0.3, 0.4, 0.2]);
             config_panel.Title = 'Configuration';
 
             % Simulation overview options
@@ -92,16 +98,20 @@ classdef speakerExplorer < UIFramework
             
             %---------------- Create model results panel -----------------%
             uicontrol(fig, 'style', 'text', 'String', 'Simulation Results:', ...
-                            'FontSize', 15, 'Position', [0.35, 0.95, 0.65, 0.05]);
-            obj.Axes{1} = axes(fig, 'OuterPosition', [0.35, 0.5, 0.65, 0.45]);
+                            'FontSize', 15, 'Position', [0.4, 0.95, 0.6, 0.05]);
+            obj.Axes{1} = axes(fig, 'OuterPosition', [0.4, 0.5, 0.6, 0.45]);
             obj.Axes{1}.NextPlot = 'add';
-            obj.Axes{2} = axes(fig, 'OuterPosition', [0.35, 0.05, 0.65, 0.45]);
+            obj.Axes{2} = axes(fig, 'OuterPosition', [0.4, 0.05, 0.6, 0.45]);
             obj.Axes{2}.NextPlot = 'add';
             
             %---------------- Create model message panel -----------------%
-            message_panel = obj.panel(fig, 'vertical', false, [0.35, 0, 0.65, 0.05]);
+            message_panel = obj.panel(fig, 'vertical', false, [0.4, 0, 0.6, 0.05]);
             obj.Message = uicontrol(message_panel, 'style', 'text', ...
                                            'ForegroundColor', [1, 0, 0]);
+                                       
+                                       
+            %-------------- Create tooltips for UI Elements --------------%
+            % @TODO Cannot get it working right now
             
         end
         
@@ -113,7 +123,7 @@ classdef speakerExplorer < UIFramework
         % Callback for editing table parameters
         function parameterEditHandler(obj, src, evt)
             % Get selection column from the table.
-            sel = cell2mat(src.Data(:, 3));
+            sel = cell2mat(src.Data(:, 4));
             num = nnz(sel);
             
             % Remove deselected entries.
@@ -127,7 +137,7 @@ classdef speakerExplorer < UIFramework
             % Remove oldest entry.
             elseif num > obj.NumParams
                 obj.CurrentParam = circshift(obj.CurrentParam, -1);
-                src.Data{obj.CurrentParam(end), 3} = false;
+                src.Data{obj.CurrentParam(end), 4} = false;
                 obj.CurrentParam(end) = evt.Indices(1);
             end
             
@@ -176,6 +186,13 @@ classdef speakerExplorer < UIFramework
                     location{i} = 1; % This is why arrays start at zero!!!
                 else
                     location{i} = ceil(val*obj.ParamResolution);
+                end
+                % Quantize displayed value to nearest step.
+                if obj.Param{i}.Display.UserData.Value
+                    [~, idx]= min(abs(obj.Param{i}.UserData.Sweep - ...
+                                    obj.Param{i}.Display.UserData.Value));
+                    quantised = obj.Param{i}.UserData.Sweep(idx);
+                    obj.Param{i}.Display.String = num2str(quantised);
                 end
             end
             
@@ -240,7 +257,8 @@ classdef speakerExplorer < UIFramework
                     range = obj.Param{i}.Display.UserData.Range;
                     sweep.(param) = linspace(base_val - range/2, ...
                                              base_val + range/2, ...
-                                             obj.ParamResolution);                          
+                                             obj.ParamResolution);
+                    obj.Param{i}.UserData.Sweep = sweep.(param);
                 end
                 results = SimFramework(obj.JSON, false, obj.ModelName, obj.Workspace, sweep);
             end
@@ -257,8 +275,7 @@ classdef speakerExplorer < UIFramework
                     ylabel(obj.Axes{i}, results(1).yout{i}.Name);
                     % Plot all data on graph.
                     obj.Trace{i} = arrayfun(@(x) plot(x.yout{i}.Values, 'b', ...
-                                                 'Parent', obj.Axes{i}), results);
-                                             
+                                                 'Parent', obj.Axes{i}), results);                       
                 end
             end    
             
@@ -292,13 +309,23 @@ classdef speakerExplorer < UIFramework
                 end
             end
             
-            % Generate corresponding data table
+            % Add units column if units are provided.
+            names = fieldnames(active_ws);
             vars = struct2cell(active_ws);
-            env = [fieldnames(active_ws), vars, num2cell(false(length(vars), 1))];
+            units = cell(size(vars));
+            
+            for i = 1:length(names)
+                if isfield(param.metadata.units, names{i})
+                    units{i} = param.metadata.units.(names{i});
+                end
+            end
+            
+            % Generate corresponding data table
+            env = [fieldnames(active_ws), vars, units, num2cell(false(length(vars), 1))];
             
             handle = obj.table(parent, 'Data', env, 'ColumnEditable', ...
-                               [false, true, true], 'ColumnName', ...
-                               {'Variable', 'Value', 'Parameter?'}, ...
+                               [false, true, false, true], 'ColumnName', ...
+                               {'Variable', 'Value', 'Units', 'Control'}, ...
                                'RowName', [], 'CellEditCallback', ...
                                @obj.parameterEditHandler);
         end
