@@ -15,7 +15,7 @@ properties
     Workspace;
     
     % User Configuration
-    ModelName = 'carTrailerModelDampened';
+    ModelName = 'carTrailerModel';
     JSON = 'model_parameters.json';
     AxesTitles =  {'Displacement',    'Velocity',       'Acceleration'        };
     AxesYLabels = {'displacment [m]', 'Velocity [m/s]', 'Acceleration [m/s^2]'};

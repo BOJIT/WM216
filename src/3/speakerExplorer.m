@@ -119,6 +119,7 @@ classdef speakerExplorer < UIFramework
             obj.Step.Tooltip = 'select to use a step function as the simulation input';
             obj.Sine.Tooltip = 'select to use a sine function as the simulation input';
             obj.Couple.Tooltip = 'select to couple the electrical and mechanical subsystems';
+            
             for i = 1:obj.NumParams
                 msg = ['Parameter Block: Use sliders to change ', ...
                         'the value of the parameter.\n The current ', ...
@@ -128,6 +129,9 @@ classdef speakerExplorer < UIFramework
                         'fields will require re-simulation.'];
                 obj.Param{i}.Slider.Tooltip = sprintf(msg);
             end
+            
+            obj.Axes{1}.Tooltip = 'Electrical Subsystem - double click to pop out figure';
+            obj.Axes{2}.Tooltip = 'Mechanical Subsystem - double click to pop out figure';
             
         end
         
