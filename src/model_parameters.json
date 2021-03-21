@@ -21,6 +21,7 @@
             "freq": 1000,
             "step": true,
             "couple": true,
+            "StopTime": 6,
             "K1": 5,
             "R": 75,
             "L": 20,

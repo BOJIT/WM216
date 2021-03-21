@@ -105,8 +105,10 @@ classdef speakerExplorer < UIFramework
                             'FontSize', 15, 'Position', [0.4, 0.95, 0.6, 0.05]);
             obj.Axes{1} = axes(fig, 'OuterPosition', [0.4, 0.5, 0.6, 0.45]);
             obj.Axes{1}.NextPlot = 'add';
+            obj.Axes{1}.ButtonDownFcn = @obj.axesPopoutHandler;
             obj.Axes{2} = axes(fig, 'OuterPosition', [0.4, 0.05, 0.6, 0.45]);
             obj.Axes{2}.NextPlot = 'add';
+            obj.Axes{2}.ButtonDownFcn = @obj.axesPopoutHandler;
             
             %---------------- Create model message panel -----------------%
             message_panel = obj.panel(fig, 'vertical', false, [0.4, 0, 0.6, 0.05]);
@@ -235,6 +237,13 @@ classdef speakerExplorer < UIFramework
         % Callback for dealing with min/max without clearing simulation.
         function minMaxEditHandler(obj, ~, ~)
             obj.allowSim(true);
+        end
+        
+        % Callback for popping axes out to an independent figure.
+        function axesPopoutHandler(~, src, ~)
+            figure;
+            copyobj(src, gcf);
+            set(gca,'Position',[.13 .11 .77 .815],'ButtonDownFcn',[]);
         end
         
         % Show that simulation is out of date
