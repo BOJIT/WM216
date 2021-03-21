@@ -32,7 +32,7 @@ classdef speakerExplorer < UIFramework
         
         % Application configuration:
         NumParams = 2; % Note for MATLAB < 2018b this must be less than 2.
-        ParamResolution = 10;
+        ParamResolution = 11; % 5 sims either side of centre.
         ModelName = 'speakerModel';
         Blacklist = {'name', 'freq', 'step', 'couple'}; % Special fields.
         JSON = 'model_parameters.json';
@@ -66,7 +66,9 @@ classdef speakerExplorer < UIFramework
             for i = 1:obj.NumParams
                 obj.Param{i} = obj.parameter(control_panel, {'null', ...
                                              ['Parameter ', num2str(i)]}, ...
-                                             0, false, true, @obj.controlEditHandler);
+                                             0, false, true, ...
+                                             @obj.controlEditHandler, ...
+                                             @obj.minMaxEditHandler);
                 obj.Param{i}.disable();
             end
 
@@ -156,6 +158,7 @@ classdef speakerExplorer < UIFramework
                     obj.Param{i}.Display.UserData.BaseValue = base_val;
                     obj.Param{i}.Display.UserData.MinValue = base_val - base_val/2;
                     obj.Param{i}.Display.UserData.MaxValue = base_val + base_val/2;
+                    
                     obj.Param{i}.enable();
                 else
                     obj.Param{i}.disable();
@@ -196,11 +199,11 @@ classdef speakerExplorer < UIFramework
                     location{i} = ceil(val*obj.ParamResolution);
                 end
                 % Quantize displayed value to nearest step.
-                if obj.Param{i}.Display.UserData.Value
-                    [~, idx]= min(abs(obj.Param{i}.UserData.Sweep - ...
+                if obj.Param{i}.Display.Enable
+                    [~, idx] = min(abs(obj.Param{i}.UserData.Sweep - ...
                                     obj.Param{i}.Display.UserData.Value));
                     quantised = obj.Param{i}.UserData.Sweep(idx);
-                    obj.Param{i}.Display.String = num2str(quantised);
+                    obj.Param{i}.Display.String = num2str(quantised, '%.4g');
                 end
             end
             
@@ -215,6 +218,11 @@ classdef speakerExplorer < UIFramework
                 xlim(obj.Axes{i}, x_lim);
                 ylim(obj.Axes{i}, y_lim);
             end
+        end
+        
+        % Callback for dealing with min/max without clearing simulation.
+        function minMaxEditHandler(obj, ~, ~)
+            obj.allowSim(true);
         end
         
         % Show that simulation is out of date
