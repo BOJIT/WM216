@@ -130,9 +130,6 @@ classdef speakerExplorer < UIFramework
                 obj.Param{i}.Slider.Tooltip = sprintf(msg);
             end
             
-            obj.Axes{1}.Tooltip = 'Electrical Subsystem - double click to pop out figure';
-            obj.Axes{2}.Tooltip = 'Mechanical Subsystem - double click to pop out figure';
-            
         end
         
     end
