@@ -52,21 +52,21 @@ classdef speakerExplorer < UIFramework
             fig.Name = 'Speaker Explorer';
 
             %--------------- Create model parameter panel ----------------%
-            parameter_panel = obj.panel(fig, 'vertical', true, [0, 0.5, 0.4, 0.5]);
+            parameter_panel = obj.panel(fig, 'vertical', true, [0, 0.65, 0.4, 0.35]);
             parameter_panel.Title = 'Parameters';
             
             % Add table with responsive resizing:
             obj.Table = obj.loadWorkspace(parameter_panel);
             
             %---------------- Create model control panel -----------------%
-            control_panel = obj.panel(fig, 'vertical', true, [0, 0, 0.4, 0.3]);
+            control_panel = obj.panel(fig, 'vertical', true, [0, 0, 0.4, 0.45]);
             control_panel.Title = 'Control';
             
             % Custom model parameters/controls
             for i = 1:obj.NumParams
                 obj.Param{i} = obj.parameter(control_panel, {'null', ...
                                              ['Parameter ', num2str(i)]}, ...
-                                             0, 0, false, @obj.controlEditHandler);
+                                             0, false, true, @obj.controlEditHandler);
                 obj.Param{i}.disable();
             end
 
@@ -75,7 +75,7 @@ classdef speakerExplorer < UIFramework
                                               'Callback', {@obj.startSim, fig});
             
             %----------------- Create model config panel -----------------%
-            config_panel = obj.panel(fig, 'vertical', true, [0, 0.3, 0.4, 0.2]);
+            config_panel = obj.panel(fig, 'vertical', true, [0, 0.45, 0.4, 0.2]);
             config_panel.Title = 'Configuration';
 
             % Simulation overview options
@@ -92,8 +92,8 @@ classdef speakerExplorer < UIFramework
             
             % Frequency parameter/control
             obj.Frequency = obj.parameter(config_panel, 'Frequency', ...
-                                          obj.Workspace.freq, obj.Workspace.freq, ...
-                                          true, @obj.configEditHandler);
+                                          obj.Workspace.freq, true, ...
+                                          false, @obj.configEditHandler);
             obj.Frequency.disable();
             
             %---------------- Create model results panel -----------------%
@@ -122,6 +122,12 @@ classdef speakerExplorer < UIFramework
         
         % Callback for editing table parameters
         function parameterEditHandler(obj, src, evt)
+            % Check numerical entry is valid.
+            if isnan(evt.NewData)
+               errordlg('Value must be numeric!');
+               src.Data{evt.Indices(1), evt.Indices(2)} = evt.PreviousData;
+            end
+            
             % Get selection column from the table.
             sel = cell2mat(src.Data(:, 4));
             num = nnz(sel);
@@ -146,8 +152,10 @@ classdef speakerExplorer < UIFramework
                 if i <= length(obj.CurrentParam)
                     % Change labels and re-enable.
                     obj.Param{i}.Label.UserData.Label = obj.Table.Data{obj.CurrentParam(i), 1};
-                    obj.Param{i}.Display.UserData.BaseValue = obj.Table.Data{obj.CurrentParam(i), 2};
-                    obj.Param{i}.Display.UserData.Range = obj.Table.Data{obj.CurrentParam(i), 2};
+                    base_val = obj.Table.Data{obj.CurrentParam(i), 2};
+                    obj.Param{i}.Display.UserData.BaseValue = base_val;
+                    obj.Param{i}.Display.UserData.MinValue = base_val - base_val/2;
+                    obj.Param{i}.Display.UserData.MaxValue = base_val + base_val/2;
                     obj.Param{i}.enable();
                 else
                     obj.Param{i}.disable();
@@ -253,11 +261,9 @@ classdef speakerExplorer < UIFramework
                 for i = 1:length(obj.CurrentParam)
                     % Create sweep struct from parameter ranges.
                     param = obj.Param{i}.Label.UserData.Label;
-                    base_val = obj.Param{i}.Display.UserData.BaseValue;
-                    range = obj.Param{i}.Display.UserData.Range;
-                    sweep.(param) = linspace(base_val - range/2, ...
-                                             base_val + range/2, ...
-                                             obj.ParamResolution);
+                    min_val = obj.Param{i}.Display.UserData.MinValue;
+                    max_val = obj.Param{i}.Display.UserData.MaxValue;
+                    sweep.(param) = linspace(min_val, max_val, obj.ParamResolution);
                     obj.Param{i}.UserData.Sweep = sweep.(param);
                 end
                 results = SimFramework(obj.JSON, false, obj.ModelName, obj.Workspace, sweep);
