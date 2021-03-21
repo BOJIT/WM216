@@ -32,7 +32,7 @@ classdef speakerExplorer < UIFramework
         
         % Application configuration:
         NumParams = 2; % Note for MATLAB < 2018b this must be less than 2.
-        ParamResolution = 10;
+        ParamResolution = 11; % 5 sims either side of centre.
         ModelName = 'speakerModel';
         Blacklist = {'name', 'freq', 'step', 'couple'}; % Special fields.
         JSON = 'model_parameters.json';
@@ -52,22 +52,26 @@ classdef speakerExplorer < UIFramework
             fig.Name = 'Speaker Explorer';
 
             %--------------- Create model parameter panel ----------------%
-            parameter_panel = obj.panel(fig, 'vertical', true, [0, 0.5, 0.4, 0.5]);
+            parameter_panel = obj.panel(fig, 'vertical', true, [0, 0.65, 0.4, 0.35]);
             parameter_panel.Title = 'Parameters';
             
             % Add table with responsive resizing:
             obj.Table = obj.loadWorkspace(parameter_panel);
             
             %---------------- Create model control panel -----------------%
-            control_panel = obj.panel(fig, 'vertical', true, [0, 0, 0.4, 0.3]);
+            control_panel = obj.panel(fig, 'vertical', true, [0, 0, 0.4, 0.45]);
             control_panel.Title = 'Control';
             
             % Custom model parameters/controls
             for i = 1:obj.NumParams
                 obj.Param{i} = obj.parameter(control_panel, {'null', ...
                                              ['Parameter ', num2str(i)]}, ...
-                                             0, 0, false, @obj.controlEditHandler);
+                                             0, false, true, ...
+                                             @obj.controlEditHandler, ...
+                                             @obj.minMaxEditHandler);
                 obj.Param{i}.disable();
+                
+                obj.Param{i}.Slider.Tooltip
             end
 
             % Simulation button
@@ -75,7 +79,7 @@ classdef speakerExplorer < UIFramework
                                               'Callback', {@obj.startSim, fig});
             
             %----------------- Create model config panel -----------------%
-            config_panel = obj.panel(fig, 'vertical', true, [0, 0.3, 0.4, 0.2]);
+            config_panel = obj.panel(fig, 'vertical', true, [0, 0.45, 0.4, 0.2]);
             config_panel.Title = 'Configuration';
 
             % Simulation overview options
@@ -92,8 +96,8 @@ classdef speakerExplorer < UIFramework
             
             % Frequency parameter/control
             obj.Frequency = obj.parameter(config_panel, 'Frequency', ...
-                                          obj.Workspace.freq, obj.Workspace.freq, ...
-                                          true, @obj.configEditHandler);
+                                          obj.Workspace.freq, true, ...
+                                          false, @obj.configEditHandler);
             obj.Frequency.disable();
             
             %---------------- Create model results panel -----------------%
@@ -101,17 +105,29 @@ classdef speakerExplorer < UIFramework
                             'FontSize', 15, 'Position', [0.4, 0.95, 0.6, 0.05]);
             obj.Axes{1} = axes(fig, 'OuterPosition', [0.4, 0.5, 0.6, 0.45]);
             obj.Axes{1}.NextPlot = 'add';
+            obj.Axes{1}.ButtonDownFcn = @obj.axesPopoutHandler;
             obj.Axes{2} = axes(fig, 'OuterPosition', [0.4, 0.05, 0.6, 0.45]);
             obj.Axes{2}.NextPlot = 'add';
+            obj.Axes{2}.ButtonDownFcn = @obj.axesPopoutHandler;
             
             %---------------- Create model message panel -----------------%
             message_panel = obj.panel(fig, 'vertical', false, [0.4, 0, 0.6, 0.05]);
             obj.Message = uicontrol(message_panel, 'style', 'text', ...
-                                           'ForegroundColor', [1, 0, 0]);
-                                       
+                                           'ForegroundColor', [1, 0, 0]);    
                                        
             %-------------- Create tooltips for UI Elements --------------%
-            % @TODO Cannot get it working right now
+            obj.Step.Tooltip = 'select to use a step function as the simulation input';
+            obj.Sine.Tooltip = 'select to use a sine function as the simulation input';
+            obj.Couple.Tooltip = 'select to couple the electrical and mechanical subsystems';
+            for i = 1:obj.NumParams
+                msg = ['Parameter Block: Use sliders to change ', ...
+                        'the value of the parameter.\n The current ', ...
+                        'value will display in the box below:\n' ...
+                        'Use the "min" and "max" fields to change ', ...
+                        'the default slider limits.\n Changing these', ...
+                        'fields will require re-simulation.'];
+                obj.Param{i}.Slider.Tooltip = sprintf(msg);
+            end
             
         end
         
@@ -122,6 +138,12 @@ classdef speakerExplorer < UIFramework
         
         % Callback for editing table parameters
         function parameterEditHandler(obj, src, evt)
+            % Check numerical entry is valid.
+            if isnan(evt.NewData)
+               errordlg('Value must be numeric!');
+               src.Data{evt.Indices(1), evt.Indices(2)} = evt.PreviousData;
+            end
+            
             % Get selection column from the table.
             sel = cell2mat(src.Data(:, 4));
             num = nnz(sel);
@@ -146,8 +168,11 @@ classdef speakerExplorer < UIFramework
                 if i <= length(obj.CurrentParam)
                     % Change labels and re-enable.
                     obj.Param{i}.Label.UserData.Label = obj.Table.Data{obj.CurrentParam(i), 1};
-                    obj.Param{i}.Display.UserData.BaseValue = obj.Table.Data{obj.CurrentParam(i), 2};
-                    obj.Param{i}.Display.UserData.Range = obj.Table.Data{obj.CurrentParam(i), 2};
+                    base_val = obj.Table.Data{obj.CurrentParam(i), 2};
+                    obj.Param{i}.Display.UserData.BaseValue = base_val;
+                    obj.Param{i}.Display.UserData.MinValue = base_val - base_val/2;
+                    obj.Param{i}.Display.UserData.MaxValue = base_val + base_val/2;
+                    
                     obj.Param{i}.enable();
                 else
                     obj.Param{i}.disable();
@@ -188,11 +213,11 @@ classdef speakerExplorer < UIFramework
                     location{i} = ceil(val*obj.ParamResolution);
                 end
                 % Quantize displayed value to nearest step.
-                if obj.Param{i}.Display.UserData.Value
-                    [~, idx]= min(abs(obj.Param{i}.UserData.Sweep - ...
+                if obj.Param{i}.Display.Enable
+                    [~, idx] = min(abs(obj.Param{i}.UserData.Sweep - ...
                                     obj.Param{i}.Display.UserData.Value));
                     quantised = obj.Param{i}.UserData.Sweep(idx);
-                    obj.Param{i}.Display.String = num2str(quantised);
+                    obj.Param{i}.Display.String = num2str(quantised, '%.4g');
                 end
             end
             
@@ -207,6 +232,18 @@ classdef speakerExplorer < UIFramework
                 xlim(obj.Axes{i}, x_lim);
                 ylim(obj.Axes{i}, y_lim);
             end
+        end
+        
+        % Callback for dealing with min/max without clearing simulation.
+        function minMaxEditHandler(obj, ~, ~)
+            obj.allowSim(true);
+        end
+        
+        % Callback for popping axes out to an independent figure.
+        function axesPopoutHandler(~, src, ~)
+            figure;
+            copyobj(src, gcf);
+            set(gca,'Position',[.13 .11 .77 .815],'ButtonDownFcn',[]);
         end
         
         % Show that simulation is out of date
@@ -253,11 +290,9 @@ classdef speakerExplorer < UIFramework
                 for i = 1:length(obj.CurrentParam)
                     % Create sweep struct from parameter ranges.
                     param = obj.Param{i}.Label.UserData.Label;
-                    base_val = obj.Param{i}.Display.UserData.BaseValue;
-                    range = obj.Param{i}.Display.UserData.Range;
-                    sweep.(param) = linspace(base_val - range/2, ...
-                                             base_val + range/2, ...
-                                             obj.ParamResolution);
+                    min_val = obj.Param{i}.Display.UserData.MinValue;
+                    max_val = obj.Param{i}.Display.UserData.MaxValue;
+                    sweep.(param) = linspace(min_val, max_val, obj.ParamResolution);
                     obj.Param{i}.UserData.Sweep = sweep.(param);
                 end
                 results = SimFramework(obj.JSON, false, obj.ModelName, obj.Workspace, sweep);

@@ -60,7 +60,7 @@ classdef UIFramework < handle
         end
         
         % Create parameter with label, slider and value.
-        function handle = parameter(parent, label, base_value, range, edit, hook)
+        function handle = parameter(parent, label, base_value, edit, minmax, hook, minmax_hook)
             handle = struct;
             
             % Assign object handles to struct fields.
@@ -81,14 +81,35 @@ classdef UIFramework < handle
             handle.Display = uicontrol(ui_div, 'style', 'edit');
             handle.Display.UserData.BaseValue = base_value;
             handle.Display.UserData.Value = base_value;
-            handle.Display.UserData.Range = range;
+            handle.Display.UserData.MinValue = base_value - base_value/2;
+            handle.Display.UserData.MaxValue = base_value + base_value/2;
             
             % Choose whether the display is directly editable.
-            if (nargin >= 5) && (edit == true)
+            if (nargin >= 4) && (edit == true)
                 handle.Display.UserData.Editable = 'on';
                 handle.Display.Callback = {@UIFramework.parameterEditHandler, handle};
             else
                 handle.Display.UserData.Editable = 'inactive';
+            end
+            
+            % Add min/max values if required.
+            if (nargin >= 5) && (minmax == true)
+                minmax_div = UIFramework.panel(handle.Container, 'horizontal', false);
+                handle.MinLabel = uicontrol(minmax_div, 'style', 'text' , 'String', 'Min');
+                handle.MinDisplay = uicontrol(minmax_div, 'style', 'edit');
+                handle.MaxLabel = uicontrol(minmax_div, 'style', 'text' , 'String', 'Max');
+                handle.MaxDisplay = uicontrol(minmax_div, 'style', 'edit');
+                
+                % Add optional min_max hook.
+                if nargin >= 7
+                    handle.MinDisplay.Callback = {@UIFramework.parameterEditMinHandler, ...
+                                                                            handle, minmax_hook};
+                    handle.MaxDisplay.Callback = {@UIFramework.parameterEditMaxHandler, ...
+                                                                            handle, minmax_hook};
+                else
+                    handle.MinDisplay.Callback = {@UIFramework.parameterEditMinHandler, handle};
+                    handle.MaxDisplay.Callback = {@UIFramework.parameterEditMaxHandler, handle};
+                end
             end
             
             % Create slider callback with/without hook if required.
@@ -193,17 +214,26 @@ classdef UIFramework < handle
         end
         
         % Handler to enable a parameter block.
-        function parameterEnableHandler(src, ~)
+        function parameterEnableHandler(src)
             src.Slider.Value = 0.5;
             src.Slider.Enable = 'on';
             src.Label.Enable = 'on';
             src.Label.String = src.Label.UserData.Label;
             src.Display.Enable = src.Display.UserData.Editable;
-            src.Display.String = num2str(src.Display.UserData.BaseValue);
+            src.Display.UserData.Value = src.Display.UserData.BaseValue;
+            src.Display.String = num2str(src.Display.UserData.BaseValue, '%.4g');
+            if isfield(src, 'MinLabel')
+                src.MinLabel.Enable = 'on';
+                src.MinDisplay.Enable = 'on';
+                src.MinDisplay.String = num2str(src.Display.UserData.MinValue, '%.4g');
+                src.MaxLabel.Enable = 'on';
+                src.MaxDisplay.Enable = 'on';
+                src.MaxDisplay.String = num2str(src.Display.UserData.MaxValue, '%.4g');
+            end
         end
         
         % Handler to disable a parameter block.
-        function parameterDisableHandler(src, ~)
+        function parameterDisableHandler(src)
             src.Slider.Enable = 'off';
             src.Label.Enable = 'off';
             if src.Label.UserData.DisableLabel ~= false
@@ -211,14 +241,23 @@ classdef UIFramework < handle
             end
             src.Display.Enable = 'off';
             src.Display.String = '';
+            if isfield(src, 'MinLabel')
+                src.MinLabel.Enable = 'off';
+                src.MinDisplay.Enable = 'off';
+                src.MinDisplay.String = '';
+                src.MaxLabel.Enable = 'off';
+                src.MaxDisplay.Enable = 'off';
+                src.MaxDisplay.String = '';
+            end
         end
         
         % Handler to change a parameter's slider value.
         function parameterSliderHandler(src, evt, handle, hook)
             % Scale base value based on slider and update display.
-            val = handle.Display.UserData.BaseValue + ...
-                        (src.Value - 0.5)*handle.Display.UserData.Range;
-            handle.Display.String = num2str(val);
+            val = handle.Display.UserData.MinValue + ...
+                       src.Value*(handle.Display.UserData.MaxValue ...
+                                - handle.Display.UserData.MinValue);
+            handle.Display.String = num2str(val, '%.4g');
             handle.Display.UserData.Value = val;
             
             % If hook is given, call hook function.
@@ -248,11 +287,50 @@ classdef UIFramework < handle
             val = str2double(src.String);
             if isnan(val)
                 errordlg('Please enter a valid numeric value!');
-                src.String = num2str(handle.Display.UserData.BaseValue);
+                src.String = num2str(handle.Display.UserData.BaseValue, '%.4g');
             else
                 src.UserData.BaseValue = val;
                 src.UserData.Value = val;
                 handle.Slider.Value = 0.5;
+                src.String = num2str(handle.Display.UserData.BaseValue, '%.4g');
+            end
+        end
+        
+        % Handler to change a parameter's base value.
+        function parameterEditMinHandler(src, evt, handle, hook)
+            val = str2double(src.String);
+            if isnan(val) || val >= handle.Display.UserData.MaxValue
+                errordlg('Please enter a valid numeric value that is less than Max!');
+                src.String = num2str(handle.Display.UserData.MinValue, '%.4g');
+            else
+                handle.Display.UserData.MinValue = val;
+                handle.Display.UserData.BaseValue = (val + handle.Display.UserData.MaxValue)/2;
+                src.String = num2str(handle.Display.UserData.MinValue, '%.4g');
+                
+                % If hook is given, call hook function.
+                if nargin >= 4
+                    hook(src, evt);
+                end
+            end
+            
+            
+        end
+        
+            % Handler to change a parameter's base value.
+        function parameterEditMaxHandler(src, evt, handle, hook)
+            val = str2double(src.String);
+            if isnan(val) || val <= handle.Display.UserData.MinValue
+                errordlg('Please enter a valid numeric value that is greater than Min!');
+                src.String = num2str(handle.Display.UserData.MaxValue, '%.4g');
+            else
+                handle.Display.UserData.MaxValue = val;
+                handle.Display.UserData.BaseValue = (val + handle.Display.UserData.MinValue)/2;
+                src.String = num2str(handle.Display.UserData.MaxValue, '%.4g');
+                
+                % If hook is given, call hook function.
+                if nargin >= 4
+                    hook(src, evt);
+                end
             end
         end
         
