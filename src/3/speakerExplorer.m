@@ -70,6 +70,8 @@ classdef speakerExplorer < UIFramework
                                              @obj.controlEditHandler, ...
                                              @obj.minMaxEditHandler);
                 obj.Param{i}.disable();
+                
+                obj.Param{i}.Slider.Tooltip
             end
 
             % Simulation button
@@ -109,11 +111,21 @@ classdef speakerExplorer < UIFramework
             %---------------- Create model message panel -----------------%
             message_panel = obj.panel(fig, 'vertical', false, [0.4, 0, 0.6, 0.05]);
             obj.Message = uicontrol(message_panel, 'style', 'text', ...
-                                           'ForegroundColor', [1, 0, 0]);
-                                       
+                                           'ForegroundColor', [1, 0, 0]);    
                                        
             %-------------- Create tooltips for UI Elements --------------%
-            % @TODO Cannot get it working right now
+            obj.Step.Tooltip = 'select to use a step function as the simulation input';
+            obj.Sine.Tooltip = 'select to use a sine function as the simulation input';
+            obj.Couple.Tooltip = 'select to couple the electrical and mechanical subsystems';
+            for i = 1:obj.NumParams
+                msg = ['Parameter Block: Use sliders to change ', ...
+                        'the value of the parameter.\n The current ', ...
+                        'value will display in the box below:\n' ...
+                        'Use the "min" and "max" fields to change ', ...
+                        'the default slider limits.\n Changing these', ...
+                        'fields will require re-simulation.'];
+                obj.Param{i}.Slider.Tooltip = sprintf(msg);
+            end
             
         end
         
