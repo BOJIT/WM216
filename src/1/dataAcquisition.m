@@ -1,12 +1,12 @@
-% WM216 - Assignment Section 1: Data Acquisition
-% Group 9
-% written and tested in Matlab R2018b
+% DESCRIPTION:  Section 1: Data Acquisition - Group 9
+% AUTHORS:      u1942959, u1942961, u1943002, u1943142
+% DATE CREATED: 23.02.21
 
 % file purpose - a solution with data acquisition and GUI to control and
 % collect data from an NI Elivs board, modelling a basic audio mixer.
 
 
-% group 9 signals:
+% Group 9 signals:
 % output 1 voltage range 0.1-0.7
 % output 2 voltage range 1-3
 % output frequency range 3-6khz

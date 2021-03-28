@@ -1,6 +1,6 @@
 % DESCRIPTION:  Startup script for setting Simulink environment
 %               variables and automating tests.
-% AUTHOR:       James Bennion-Pedley
+% AUTHORS:      u1942959, u1942961, u1943002, u1943142
 % DATE CREATED: 19.02.21
 
 %{

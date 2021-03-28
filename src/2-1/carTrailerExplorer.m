@@ -1,6 +1,6 @@
-% DESCRIPTION:  GUI for looking at
-% AUTHOR:       Ross Geddes, James Bennion-Pedley
-% DATE CREATED: 20/02/2021
+% DESCRIPTION:  GUI for analysing the car trailer model.
+% AUTHORS:      u1942959, u1942961, u1943002, u1943142
+% DATE CREATED: 20.02.21
 
 classdef carTrailerExplorer < UIFramework
 

@@ -1,6 +1,6 @@
 % DESCRIPTION:  GUI for manipulating speaker simulink model from Section
 %               2.2. Based on the UIFramework.
-% AUTHOR:       James Bennion-Pedley
+% AUTHORS:      u1942959, u1942961, u1943002, u1943142
 % DATE CREATED: 07.03.21
 
 % IMPORTANT NOTE!

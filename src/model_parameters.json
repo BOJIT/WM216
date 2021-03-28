@@ -39,7 +39,7 @@
             "Fsin": 1
         },
         {
-            "name": "DerivedTransferFunctions",
+            "name": "derivedTransferFunctions",
             "freq": 1000,
             "step": true,
             "couple": true,
@@ -84,7 +84,7 @@
             "VstepOnTime": "s",
             "VstepOffTime": "s",
             "Vstep": "V",
-            "Vsin": "s",
+            "Vsin": "V",
             "Fstep": "N",
             "FstepOnTime": "s",
             "FstepOffTime": "s",
