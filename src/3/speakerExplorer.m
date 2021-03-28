@@ -70,7 +70,7 @@ classdef speakerExplorer < UIFramework
                                              @obj.controlEditHandler, ...
                                              @obj.minMaxEditHandler);
                 obj.Param{i}.disable();
-                
+
                 obj.Param{i}.Slider.Tooltip
             end
 
@@ -143,6 +143,13 @@ classdef speakerExplorer < UIFramework
             if isnan(evt.NewData)
                errordlg('Value must be numeric!');
                src.Data{evt.Indices(1), evt.Indices(2)} = evt.PreviousData;
+               return;
+            end
+            
+            % Exit if control checkboxes were not edited.
+            if evt.Indices(2) == 2
+                obj.allowSim(true);
+                return;
             end
             
             % Get selection column from the table.
@@ -269,20 +276,20 @@ classdef speakerExplorer < UIFramework
             % Set pointer to loading symbol.
             set(load_handle, 'pointer', 'watch');
             drawnow;
-            
+
             % Don't allow another simulation until change is made.
             obj.allowSim(false);
-            
+
             % Update workspace struct with current variables.
             for row = obj.Table.Data'
                 obj.Workspace.(row{1}) = row{2};
             end
-            
+
             % Get special config options.
             obj.Workspace.freq = obj.Frequency.Display.UserData.Value;
             obj.Workspace.step = obj.Step.Value;
             obj.Workspace.couple = obj.Couple.Value;
-            
+
             % Request headless simulation (single or parallel).
             if isempty(obj.CurrentParam)
                 results = SimFramework(obj.JSON, false, obj.ModelName, obj.Workspace);
@@ -298,7 +305,7 @@ classdef speakerExplorer < UIFramework
                 end
                 results = SimFramework(obj.JSON, false, obj.ModelName, obj.Workspace, sweep);
             end
-            
+
             % Clear previous graph content and set labels using Simulink.
             for i = 1:length(obj.Axes)
                 cla(obj.Axes{i});
@@ -314,12 +321,12 @@ classdef speakerExplorer < UIFramework
                                                  'Parent', obj.Axes{i}), results);                       
                 end
             end    
-            
+
             % If applicable call control callback handlers directly.
             if ~isempty(obj.CurrentParam)
                 obj.controlEditHandler();
             end
-            
+
             % Reset pointer to arrow:
             set(load_handle, 'pointer', 'arrow');
         end
@@ -327,7 +334,7 @@ classdef speakerExplorer < UIFramework
         % Read default values to initialise table
         function handle = loadWorkspace(obj, parent)
             active_ws = [];
-            
+
             % Get environment variables from JSON
             json = fileread(obj.JSON);
             param = jsondecode(json);
@@ -336,7 +343,7 @@ classdef speakerExplorer < UIFramework
                     active_ws = ws{:};
                 end
             end
-            
+
             % Make special fields non-editable.
             for field = obj.Blacklist
                 if isfield(active_ws, field{:})
@@ -344,21 +351,21 @@ classdef speakerExplorer < UIFramework
                     active_ws = rmfield(active_ws, field{:});
                 end
             end
-            
+
             % Add units column if units are provided.
             names = fieldnames(active_ws);
             vars = struct2cell(active_ws);
             units = cell(size(vars));
-            
+
             for i = 1:length(names)
                 if isfield(param.metadata.units, names{i})
                     units{i} = param.metadata.units.(names{i});
                 end
             end
-            
+
             % Generate corresponding data table
             env = [fieldnames(active_ws), vars, units, num2cell(false(length(vars), 1))];
-            
+
             handle = obj.table(parent, 'Data', env, 'ColumnEditable', ...
                                [false, true, false, true], 'ColumnName', ...
                                {'Variable', 'Value', 'Units', 'Control'}, ...
